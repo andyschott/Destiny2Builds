@@ -1,5 +1,6 @@
 ﻿using Destiny2;
 using Destiny2Builds.Helpers;
+using Destiny2Builds.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -64,6 +65,8 @@ namespace Destiny2Builds
                 TokenEndpoint = bungie.TokenEndpoint,
                 CallbackPath = "/signin-bungie/"
             });
+
+            services.AddScoped<IItemFactory, ItemFactory>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

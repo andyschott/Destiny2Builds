@@ -1,7 +1,9 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Destiny2;
 using Destiny2Builds.Helpers;
 using Destiny2Builds.Models;
+using Destiny2Builds.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -18,16 +20,18 @@ namespace Destiny2Builds.Controllers
         private readonly IDestiny2 _destiny2;
         private readonly IManifest _manifest;
         private readonly BungieSettings _bungie;
+        private readonly IItemFactory _itemFactory;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly ILogger _logger;
 
         public CharacterController(IDestiny2 destiny2, IManifest manifest,
-            IOptions<BungieSettings> bungie, IHttpContextAccessor contextAccessor,
-            ILogger<CharacterController> logger)
+            IOptions<BungieSettings> bungie, IItemFactory itemFactory,
+            IHttpContextAccessor contextAccessor, ILogger<CharacterController> logger)
         {
             _destiny2 = destiny2;
             _manifest = manifest;
             _bungie = bungie.Value;
+            _itemFactory = itemFactory;
             _contextAccessor = contextAccessor;
             _logger = logger;
         }
@@ -54,6 +58,33 @@ namespace Destiny2Builds.Controllers
                 var classDef = await _manifest.LoadClass(item.Value.ClassHash);
                 model.Characters.Add(new Character(item.Key, item.Value, classDef, _bungie.BaseUrl));
             }
+
+            return View(model);
+        }
+
+        [HttpGet("{type}/{id}/{characterId}")]
+        public async Task<IActionResult> Details(int type, long id, long characterId)
+        {
+            var membershipType = (BungieMembershipType)type;
+            _logger.LogInformation($"{membershipType}/{id}/{characterId}");
+
+            var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
+
+            var character = await _destiny2.GetCharacterInfo(accessToken, membershipType, id, characterId,
+                DestinyComponentType.Characters, DestinyComponentType.CharacterEquipment,
+                DestinyComponentType.ItemInstances);
+
+            var items = await _itemFactory.LoadItems(character.Equipment.Data.Items,
+            character.ItemComponents.Instances.Data);
+
+            var model = new CharacterViewModel()
+            {
+                Type = membershipType,
+                AccountId = id,
+                Items = items,
+                EmblemPath = _bungie.BaseUrl + character.Character.Data.EmblemPath,
+                EmblemBackgroundPath = _bungie.BaseUrl + character.Character.Data.EmblemBackgroundPath
+            };
 
             return View(model);
         }
