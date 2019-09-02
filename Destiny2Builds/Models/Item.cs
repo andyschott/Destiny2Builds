@@ -6,8 +6,8 @@ namespace Destiny2Builds.Models
 {
     public class Item
     {
-        public Item(string baseUrl, DestinyItemComponent itemComponent, DestinyInventoryItemDefinition itemDef,
-            DestinyInventoryBucketDefinition bucket, DestinyItemInstanceComponent instance = null)
+        public Item(string baseUrl, DestinyInventoryItemDefinition itemDef,
+            DestinyInventoryBucketDefinition bucket, long instanceId = 0, DestinyItemInstanceComponent instance = null)
         {
             Name = itemDef.DisplayProperties.Name;
             PowerLevel = instance?.PrimaryStat?.Value ?? 0;
@@ -15,6 +15,8 @@ namespace Destiny2Builds.Models
             Tier = itemDef.Inventory.TierType;
             ClassType = itemDef.ClassType;
             Icon = baseUrl + itemDef.DisplayProperties.Icon;
+            Hash = itemDef.Hash;
+            InstanceId = instanceId;
         }
 
         public Item(string name, ItemSlot.SlotHashes slot, int powerLevel,
@@ -33,6 +35,8 @@ namespace Destiny2Builds.Models
         public TierType Tier { get; }
         public DestinyClass ClassType { get; }
         public string Icon { get; }
+        public uint Hash { get; }
+        public long InstanceId { get; }
 
         public bool IsWeapon => Slot.IsWeapon;
         public bool IsArmor => Slot.IsArmor;

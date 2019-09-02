@@ -21,7 +21,11 @@
     @foreach(var item in Model.Items)
     {
       <div class="col-md-4">
-        @await Html.PartialAsync("ItemPartial", item)
+        <a asp-route="ItemIndex" asp-route-type="@((int)Model.Type)"
+            asp-route-accountId="@Model.AccountId" asp-route-itemHash="@item.Hash"
+            asp-route-instanceId="@item.InstanceId">
+            @await Html.PartialAsync("ItemPartial", item)
+        </a>
       </div>
     }
   </div>
