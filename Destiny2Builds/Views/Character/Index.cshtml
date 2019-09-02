@@ -1,0 +1,16 @@
+@model CharactersViewModel
+
+@{
+    ViewData["Title"] = "Characters";
+}
+
+<div class="row">
+    <div class="col-md-12">
+      <ul>
+      @foreach (var character in Model.Characters)
+      {
+        <li><img src="@character.EmblemPath" width="48" height="48"> <a asp-action="Details" asp-controller="Character" asp-route-type="@((int)Model.Type)" asp-route-id="@Model.Id" asp-route-characterId="@character.Id">@character</a></li>
+      }
+      </ul>
+    </div>
+</div>

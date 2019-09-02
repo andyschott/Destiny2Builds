@@ -42,6 +42,8 @@ namespace Destiny2Builds
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
+            services.AddHttpContextAccessor();
+
             services.Configure<BungieSettings>(Configuration.GetSection("Bungie"));
             var bungie = Configuration.GetSection("Bungie").Get<BungieSettings>();
 
