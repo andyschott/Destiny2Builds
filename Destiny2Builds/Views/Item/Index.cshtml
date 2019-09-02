@@ -25,9 +25,12 @@
     </div>
     <div class="row">
         <ul>
-            @foreach(var perk in Model.Item.Perks)
+            @foreach(var socket in Model.Item.Sockets)
             {
-                <li>@perk.Name</li>
+                @if(@socket.SelectedPerk != null)
+                {
+                    <li>@socket.SelectedPerk.Name</li>
+                }
             }
         </ul>
     </div>

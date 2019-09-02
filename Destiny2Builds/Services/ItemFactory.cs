@@ -77,7 +77,7 @@ namespace Destiny2Builds.Services
             await Task.WhenAll(itemTask, instanceTask);
 
             return new Item(_bungie.BaseUrl, itemTask.Result.item, itemTask.Result.bucket,
-                instanceId, instanceTask.Result.instance, instanceTask.Result.perks);
+                instanceId, instanceTask.Result.instance, instanceTask.Result.sockets);
         }
 
         private static bool ShouldInclude(DestinyInventoryBucketDefinition bucket)
@@ -93,46 +93,60 @@ namespace Destiny2Builds.Services
             return (itemDef, bucket);
         }
 
-        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Perk> perks)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
+        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Socket> sockets)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
         {
             var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
             var instance = await _destiny2.GetItem(accessToken, type, accountId, instanceId,
                 DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets);
 
-            IEnumerable<Perk> perks = null;
-            var sockets = instance.Sockets?.Data.Sockets;
-            if(sockets != null)
+            IEnumerable<Socket> sockets = null;
+            var itemSockets = instance.Sockets?.Data.Sockets;
+            if(itemSockets != null)
             {
-                perks = await LoadPerks(sockets);
+                sockets = await LoadSockets(itemSockets);
             }
 
-            return (instance.Instance.Data, perks);
+            return (instance.Instance.Data, sockets);
         }
 
-        private async Task<IEnumerable<Perk>> LoadPerks(IEnumerable<DestinyItemSocketState> sockets)
+        private async Task<IEnumerable<Socket>> LoadSockets(IEnumerable<DestinyItemSocketState> itemSockets)
         {
-            var perkTasks = sockets.SelectMany(socket =>
+            var socketTasks = itemSockets.Where(socket => socket.IsEnabled && socket.IsVisible)
+                .Select(async itemSocket =>
             {
-                if(socket.ReusablePlugs != null)
-                {
-                    var tasks = socket.ReusablePlugs.Select(reusablePlug =>
-                    {
-                        return LoadPerk(reusablePlug.PlugItemHash);
-                    });
-                    return tasks;
-                }
-
-                return new Task<Perk>[] { LoadPerk(socket.PlugHash) };
+                var perks = await LoadPerks(itemSocket);
+                return new Socket(perks);
             });
-            
-            return await Task.WhenAll(perkTasks);
+
+            return await Task.WhenAll(socketTasks);
         }
 
-        private async Task<Perk> LoadPerk(uint hash)
+        private async Task<IEnumerable<Perk>> LoadPerks(DestinyItemSocketState socket)
+        {
+            if(socket.ReusablePlugs != null)
+            {
+                var tasks = socket.ReusablePlugs.Select(reusablePlug =>
+                {
+                    var isSelected = reusablePlug.PlugItemHash == socket.PlugHash;
+                    return LoadPerk(reusablePlug.PlugItemHash, isSelected);
+                });
+                var perks = await Task.WhenAll(tasks);
+                if(!perks.Any(perk => perk.Hash == socket.PlugHash))
+                {
+                    var selectedPerk = await LoadPerk(socket.PlugHash, true);
+                    return perks.Concat(new[] { selectedPerk });
+                }
+            }
+
+            var singlePerk = await LoadPerk(socket.PlugHash, true);
+            return new[] { singlePerk };
+        }
+
+        private async Task<Perk> LoadPerk(uint hash, bool isSelected)
         {
             var plug = await _manifest.LoadPlug(hash);
             var categories = await _manifest.LoadItemCategories(plug.ItemCategoryHashes);
-            return new Perk(_bungie.BaseUrl, plug, categories);
+            return new Perk(_bungie.BaseUrl, isSelected, plug, categories);
         }
     }
 }
