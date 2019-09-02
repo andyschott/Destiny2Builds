@@ -22,7 +22,9 @@
     {
       <div class="col-md-4">
         <a asp-route="ItemIndex" asp-route-type="@((int)Model.Type)"
-            asp-route-accountId="@Model.AccountId" asp-route-itemHash="@item.Hash"
+            asp-route-accountId="@Model.AccountId"
+            asp-route-characterId="@Model.CharacterId"
+            asp-route-itemHash="@item.Hash"
             asp-route-instanceId="@item.InstanceId">
             @await Html.PartialAsync("ItemPartial", item)
         </a>

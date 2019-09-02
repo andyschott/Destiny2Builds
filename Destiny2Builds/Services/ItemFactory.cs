@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Destiny2;
 using Destiny2.Definitions;
@@ -29,6 +30,7 @@ namespace Destiny2Builds.Services
                 ItemSlot.SlotHashes.ChestArmor,
                 ItemSlot.SlotHashes.LegArmor,
                 ItemSlot.SlotHashes.ClassArmor,
+                ItemSlot.SlotHashes.Ghost,
             };
 
         public ItemFactory(IDestiny2 destiny2, IManifest manifest, IOptions<BungieSettings> bungie,
@@ -75,7 +77,7 @@ namespace Destiny2Builds.Services
             await Task.WhenAll(itemTask, instanceTask);
 
             return new Item(_bungie.BaseUrl, itemTask.Result.item, itemTask.Result.bucket,
-                instanceId, instanceTask.Result);
+                instanceId, instanceTask.Result.instance, instanceTask.Result.perks);
         }
 
         private static bool ShouldInclude(DestinyInventoryBucketDefinition bucket)
@@ -91,13 +93,46 @@ namespace Destiny2Builds.Services
             return (itemDef, bucket);
         }
 
-        private async Task<DestinyItemInstanceComponent> GetInstance(BungieMembershipType type, long accountId, long instanceId)
+        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Perk> perks)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
         {
             var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
             var instance = await _destiny2.GetItem(accessToken, type, accountId, instanceId,
-                DestinyComponentType.ItemInstances);
+                DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets);
 
-            return instance.Instance.Data;
+            IEnumerable<Perk> perks = null;
+            var sockets = instance.Sockets?.Data.Sockets;
+            if(sockets != null)
+            {
+                perks = await LoadPerks(sockets);
+            }
+
+            return (instance.Instance.Data, perks);
+        }
+
+        private async Task<IEnumerable<Perk>> LoadPerks(IEnumerable<DestinyItemSocketState> sockets)
+        {
+            var perkTasks = sockets.SelectMany(socket =>
+            {
+                if(socket.ReusablePlugs != null)
+                {
+                    var tasks = socket.ReusablePlugs.Select(reusablePlug =>
+                    {
+                        return LoadPerk(reusablePlug.PlugItemHash);
+                    });
+                    return tasks;
+                }
+
+                return new Task<Perk>[] { LoadPerk(socket.PlugHash) };
+            });
+            
+            return await Task.WhenAll(perkTasks);
+        }
+
+        private async Task<Perk> LoadPerk(uint hash)
+        {
+            var plug = await _manifest.LoadPlug(hash);
+            var categories = await _manifest.LoadItemCategories(plug.ItemCategoryHashes);
+            return new Perk(_bungie.BaseUrl, plug, categories);
         }
     }
 }

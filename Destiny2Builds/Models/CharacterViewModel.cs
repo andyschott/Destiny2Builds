@@ -8,6 +8,7 @@ namespace Destiny2Builds.Models
     {
         public BungieMembershipType Type { get; set; }
         public long AccountId { get; set; }
+        public long CharacterId { get; set; }
         public IEnumerable<Item> Items { get; set; } = new List<Item>();
         public string EmblemPath { get; set; }
         public string EmblemBackgroundPath {get; set; }

@@ -67,7 +67,7 @@ namespace Destiny2Builds.Controllers
             return View(model);
         }
 
-        [HttpGet("{type}/{id}/{characterId}")]
+        [HttpGet("{type}/{id}/{characterId}", Name="CharacterDetails")]
         public async Task<IActionResult> Details(int type, long id, long characterId)
         {
             var membershipType = (BungieMembershipType)type;
@@ -86,6 +86,7 @@ namespace Destiny2Builds.Controllers
             {
                 Type = membershipType,
                 AccountId = id,
+                CharacterId = characterId,
                 Items = items,
                 EmblemPath = _bungie.BaseUrl + character.Character.Data.EmblemPath,
                 EmblemBackgroundPath = _bungie.BaseUrl + character.Character.Data.EmblemBackgroundPath

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Destiny2;
+using Destiny2Builds.Models;
 using Destiny2Builds.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,14 +16,19 @@ namespace Destiny2Builds.Controllers
             _itemFactory = itemFactory;
         }
 
-        [HttpGet("{type}/{accountId}/{itemHash}/{instanceId}", Name="ItemIndex")]
-        public async Task<IActionResult> Index(BungieMembershipType type, long accountId, uint itemHash, long instanceId)
+        [HttpGet("{type}/{accountId}/{characterId}/{itemHash}/{instanceId}", Name="ItemIndex")]
+        public async Task<IActionResult> Index(BungieMembershipType type, long accountId,
+            long characterId, uint itemHash, long instanceId)
         {
             var item = await _itemFactory.LoadItem(type, accountId, itemHash, instanceId);
-
-            // TODO: Load perks and sockets
-            
-            return View(item);
+            var model = new ItemViewModel
+            {
+                Type = type,
+                AccountId = accountId,
+                CharacterId = characterId,
+                Item = item,
+            };         
+            return View(model);
         }
     }
 }
