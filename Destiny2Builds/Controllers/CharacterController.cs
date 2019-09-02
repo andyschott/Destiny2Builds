@@ -53,10 +53,15 @@ namespace Destiny2Builds.Controllers
                 return Redirect(url);
             }
 
-            foreach (var item in profileResponse.Characters.Data)
+            var classDefTasks = profileResponse.Characters.Data.Select(item => _manifest.LoadClass(item.Value.ClassHash));
+
+            var classDefs = await Task.WhenAll(classDefTasks);
+            var characters = profileResponse.Characters.Data.Zip(classDefs,
+                (item, classDef) => (id: item.Key, characters: item.Value, classDef: classDef));
+
+            foreach (var (characterId, character, classDef) in characters)
             {
-                var classDef = await _manifest.LoadClass(item.Value.ClassHash);
-                model.Characters.Add(new Character(item.Key, item.Value, classDef, _bungie.BaseUrl));
+                model.Characters.Add(new Character(characterId, character, classDef, _bungie.BaseUrl));
             }
 
             return View(model);
