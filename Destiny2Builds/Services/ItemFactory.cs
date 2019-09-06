@@ -136,6 +136,8 @@ namespace Destiny2Builds.Services
                     var selectedPerk = await LoadPerk(socket.PlugHash, true);
                     return perks.Concat(new[] { selectedPerk });
                 }
+
+                return perks;
             }
 
             var singlePerk = await LoadPerk(socket.PlugHash, true);

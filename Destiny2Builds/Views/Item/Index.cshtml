@@ -27,10 +27,14 @@
         <ul>
             @foreach(var socket in Model.Item.Sockets)
             {
-                @if(@socket.SelectedPerk != null)
-                {
-                    <li>@socket.SelectedPerk.Name</li>
-                }
+                <li>
+                    <select>
+                        @foreach(var perk in socket.Perks)
+                        {
+                            <option>@perk.Name</option>
+                        }
+                    </select>
+                </li>
             }
         </ul>
     </div>

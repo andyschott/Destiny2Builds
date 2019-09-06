@@ -1,8 +1,10 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Destiny2;
 using Destiny2Builds.Models;
 using Destiny2Builds.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Destiny2Builds.Controllers
 {
@@ -27,6 +29,15 @@ namespace Destiny2Builds.Controllers
                 AccountId = accountId,
                 CharacterId = characterId,
                 Item = item,
+                Sockets = item.Sockets.Select(socket => new SocketViewModel
+                {
+                    Perks = socket.Perks.Select(perk => new SelectListItem
+                    {
+                        Text = perk.Name,
+                        Value = perk.Hash.ToString(),
+                        Selected = perk.IsSelected,
+                    }).ToList()
+                }).ToList()
             };         
             return View(model);
         }
