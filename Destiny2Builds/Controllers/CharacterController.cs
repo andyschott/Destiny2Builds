@@ -79,8 +79,9 @@ namespace Destiny2Builds.Controllers
                 DestinyComponentType.Characters, DestinyComponentType.CharacterEquipment,
                 DestinyComponentType.ItemInstances);
 
-            var items = await _itemFactory.LoadItems(character.Equipment.Data.Items,
-            character.ItemComponents.Instances.Data);
+            var allItems = await _itemFactory.LoadItems(character.Equipment.Data.Items,
+                character.ItemComponents.Instances.Data);
+            var items = allItems.ToDictionary(item => item.Slot.Hash);
 
             var model = new CharacterViewModel()
             {

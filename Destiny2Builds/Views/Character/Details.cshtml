@@ -8,27 +8,35 @@
   <a asp-route="CharacterIndex" asp-route-type="@((int)Model.Type)" asp-route-id="@Model.AccountId">&lt;&lt; Characters</a>
 </p>
 
-<picture class="float-right">
-  <source media="(min-width: 992px)" srcset="@Model.EmblemBackgroundPath">
-  <img src="@Model.EmblemPath" class="d-none d-md-block">
-</picture>
-
 <div class="container">
   <div class="row">
-    <h1>Items</h1>
+    <div class="col-md text-center">
+      <h1>Items</h1>
+    </div>
+    <div class="col-md">
+      <picture class="float-right">
+        <source media="(min-width: 992px)" srcset="@Model.EmblemBackgroundPath">
+        <img src="@Model.EmblemPath" class="d-none d-md-block">
+      </picture>
+    </div>
   </div>
-  <div class="row">
-    @foreach(var item in Model.Items)
-    {
-      <div class="col-md-4">
+</div>  
+
+<div class="container float-md-left w-50">
+  @foreach(var item in Model.AllItems)
+  {
+    <div class="row">
         <a asp-route="ItemIndex" asp-route-type="@((int)Model.Type)"
             asp-route-accountId="@Model.AccountId"
             asp-route-characterId="@Model.CharacterId"
             asp-route-itemHash="@item.Hash"
             asp-route-instanceId="@item.InstanceId">
-            @await Html.PartialAsync("ItemPartial", item)
-        </a>
-      </div>
-    }
-  </div>
+        @await Html.PartialAsync("ItemPartial", item)
+      </a>
+    </div>
+  }
+</div>
+
+<div class="container text-center w-50">
+  <p>Stats go here</p>
 </div>

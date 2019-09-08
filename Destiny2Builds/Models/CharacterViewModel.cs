@@ -9,14 +9,10 @@ namespace Destiny2Builds.Models
         public BungieMembershipType Type { get; set; }
         public long AccountId { get; set; }
         public long CharacterId { get; set; }
-        public IEnumerable<Item> Items { get; set; } = new List<Item>();
+        public IDictionary<ItemSlot.SlotHashes, Item> Items { get; set; } = new Dictionary<ItemSlot.SlotHashes, Item>();
         public string EmblemPath { get; set; }
         public string EmblemBackgroundPath {get; set; }
 
-        public IEnumerable<Item> Weapons => Items.Where(item => item.IsWeapon)
-                                                 .OrderBy(item => item.Slot.Order);
-        
-        public IEnumerable<Item> Armor => Items.Where(item => item.IsArmor)
-                                               .OrderBy(item => item.Slot.Order);
+        public IEnumerable<Item> AllItems => Items.Values.OrderBy(item => item.Slot.Order);
     }
 }
