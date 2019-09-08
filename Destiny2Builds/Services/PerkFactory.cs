@@ -17,6 +17,8 @@ namespace Destiny2Builds.Services
         private readonly IManifest _manifest;
         private readonly BungieSettings _bungie;
 
+        private const uint MasterworkSocketTypeHash = 501110267;
+
         public PerkFactory(IManifest manifest, IOptions<BungieSettings> bungie)
         {
             _manifest = manifest;
@@ -53,7 +55,8 @@ namespace Destiny2Builds.Services
         }
 
         public async Task<IEnumerable<Perk>> LoadAvailablePerks(DestinyItemSocketEntryDefinition socketEntry,
-            DestinySocketCategoryDefinition categoryDef, IEnumerable<Perk> currentPerks)
+            DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
+            IEnumerable<Perk> currentPerks)
         {
             var perkGroups = new List<IEnumerable<Perk>>();
 
@@ -81,6 +84,15 @@ namespace Destiny2Builds.Services
                     {
                         // TODO: Load mods/shaders/whatever from inventory
                         // Why does the Masterwork Armor slot get here?!?!?
+                        if(IsMasterworkSocket(socketType))
+                        {
+                            // All of the possible Masterwork armor plugs are in the
+                            // ReusablePlugItems on the SocketEntry.
+                            var tasks = socketEntry.ReusablePlugItems.Select(reusablePlug =>
+                                LoadPerk(reusablePlug.PlugItemHash, false));
+                            var perks = await Task.WhenAll(tasks);
+                            perkGroups.Add(perks);
+                        }
                         break;
                     }
                     default:
@@ -115,5 +127,8 @@ namespace Destiny2Builds.Services
             var categories = await _manifest.LoadItemCategories(plug.ItemCategoryHashes);
             return new Perk(_bungie.BaseUrl, isSelected, plug, categories);
         }
+
+        private static bool IsMasterworkSocket(DestinySocketTypeDefinition socketType) =>
+            socketType.Hash == MasterworkSocketTypeHash;
     }
 }

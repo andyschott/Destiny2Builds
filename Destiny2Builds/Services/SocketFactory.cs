@@ -91,7 +91,7 @@ namespace Destiny2Builds.Services
             IEnumerable<Perk> perks)
         {
             var availablePerks = await _perkFactory.LoadAvailablePerks(socketEntry,
-                categoryDef, perks);
+                socketType, categoryDef, perks);
             var selectedPerk = perks.FirstOrDefault(perk => perk.IsSelected);
             return new Socket(selectedPerk, availablePerks);
         }
