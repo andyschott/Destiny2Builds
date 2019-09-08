@@ -38,5 +38,13 @@
 </div>
 
 <div class="container text-center w-50">
-  <p>Stats go here</p>
+  <table>
+    @foreach(var stat in Model.Stats.Values)
+    {
+      <tr>
+        <td>@stat.Name</td>
+        <td>@stat.Value</td>
+      </tr>
+    }
+  </table>
 </div>

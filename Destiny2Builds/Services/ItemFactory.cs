@@ -43,7 +43,8 @@ namespace Destiny2Builds.Services
         }
         
         public async Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
-            IDictionary<long, DestinyItemInstanceComponent> itemInstances)
+            IDictionary<long, DestinyItemInstanceComponent> itemInstances,
+            IDictionary<long, DestinyItemStatsComponent> itemStats)
         {
             var buckets = new Dictionary<long, DestinyInventoryBucketDefinition>();
 
@@ -62,8 +63,11 @@ namespace Destiny2Builds.Services
                     continue;
                 }
 
-                itemInstances.TryGetValue(itemComponent.ItemInstanceId, out DestinyItemInstanceComponent instance);
-                items.Add(new Item(_bungie.BaseUrl, itemDef, bucket, itemComponent.ItemInstanceId, instance));
+                itemStats.TryGetValue(itemComponent.ItemInstanceId, out var statsComponent);
+                var stats = await LoadStats(statsComponent?.Stats);
+
+                itemInstances.TryGetValue(itemComponent.ItemInstanceId, out var instance);
+                items.Add(new Item(_bungie.BaseUrl, itemDef, bucket, itemComponent.ItemInstanceId, instance, stats));
             }
 
             return items;
@@ -77,7 +81,8 @@ namespace Destiny2Builds.Services
             await Task.WhenAll(itemTask, instanceTask);
 
             return new Item(_bungie.BaseUrl, itemTask.Result.item, itemTask.Result.bucket,
-                instanceId, instanceTask.Result.instance, instanceTask.Result.sockets);
+                instanceId, instanceTask.Result.instance, instanceTask.Result.stats,
+                instanceTask.Result.sockets);
         }
 
         private static bool ShouldInclude(DestinyInventoryBucketDefinition bucket)
@@ -93,24 +98,28 @@ namespace Destiny2Builds.Services
             return (itemDef, bucket);
         }
 
-        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Socket> sockets)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
+        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Stat> stats, IEnumerable<Socket> sockets)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
         {
             var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
             var instance = await _destiny2.GetItem(accessToken, type, accountId, instanceId,
-                DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets);
+                DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets,
+                DestinyComponentType.ItemStats);
 
-            IEnumerable<Socket> sockets = null;
-            var itemSockets = instance.Sockets?.Data.Sockets;
-            if(itemSockets != null)
-            {
-                sockets = await LoadSockets(itemSockets);
-            }
+            var socketsTask = LoadSockets(instance.Sockets?.Data.Sockets);
+            var statsTask = LoadStats(instance.Stats?.Data.Stats);
 
-            return (instance.Instance.Data, sockets);
+            await Task.WhenAll(socketsTask, statsTask);
+
+            return (instance.Instance.Data, statsTask.Result, socketsTask.Result);
         }
 
         private async Task<IEnumerable<Socket>> LoadSockets(IEnumerable<DestinyItemSocketState> itemSockets)
         {
+            if(itemSockets == null)
+            {
+                return null;
+            }
+
             var socketTasks = itemSockets.Where(socket => socket.IsEnabled && socket.IsVisible)
                 .Select(async itemSocket =>
             {
@@ -149,6 +158,18 @@ namespace Destiny2Builds.Services
             var plug = await _manifest.LoadPlug(hash);
             var categories = await _manifest.LoadItemCategories(plug.ItemCategoryHashes);
             return new Perk(_bungie.BaseUrl, isSelected, plug, categories);
+        }
+
+        private async Task<IEnumerable<Stat>> LoadStats(IDictionary<uint, DestinyStat> stats)
+        {
+            if(stats == null)
+            {
+                return null;
+            }
+            
+            var statDefs = await _manifest.LoadStats(stats.Keys);
+
+            return statDefs.Select(statDef => new Stat(_bungie.BaseUrl, stats[statDef.Hash], statDef));
         }
     }
 }

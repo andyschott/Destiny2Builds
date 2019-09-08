@@ -9,7 +9,8 @@ namespace Destiny2Builds.Services
     public interface IItemFactory
     {
          Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
-            IDictionary<long, DestinyItemInstanceComponent> itemInstances);
+            IDictionary<long, DestinyItemInstanceComponent> itemInstances,
+            IDictionary<long, DestinyItemStatsComponent> itemStats);
         Task<Item> LoadItem(BungieMembershipType type, long accountId, uint itemHash, long instanceId);
     }
 }

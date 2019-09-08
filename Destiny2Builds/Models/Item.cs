@@ -11,6 +11,7 @@ namespace Destiny2Builds.Models
         public Item(string baseUrl, DestinyInventoryItemDefinition itemDef,
             DestinyInventoryBucketDefinition bucket, long instanceId = 0,
             DestinyItemInstanceComponent instance = null,
+            IEnumerable<Stat> stats = null,
             IEnumerable<Socket> sockets = null)
             : base(baseUrl, itemDef)
         {
@@ -20,6 +21,7 @@ namespace Destiny2Builds.Models
             ClassType = itemDef.ClassType;
             InstanceId = instanceId;
             Sockets = sockets?.ToList() ?? Enumerable.Empty<Socket>();
+            Stats = stats?.ToList() ?? Enumerable.Empty<Stat>();
         }
 
         public Item(string name, ItemSlot.SlotHashes slot, int powerLevel,
@@ -38,6 +40,7 @@ namespace Destiny2Builds.Models
         public DestinyClass ClassType { get; }
         public long InstanceId { get; }
         public IEnumerable<Socket> Sockets { get; }
+        public IEnumerable<Stat> Stats { get; }
 
         public bool IsWeapon => Slot.IsWeapon;
         public bool IsArmor => Slot.IsArmor;

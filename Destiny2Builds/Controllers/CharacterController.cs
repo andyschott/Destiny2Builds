@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Destiny2;
@@ -77,11 +78,13 @@ namespace Destiny2Builds.Controllers
 
             var character = await _destiny2.GetCharacterInfo(accessToken, membershipType, id, characterId,
                 DestinyComponentType.Characters, DestinyComponentType.CharacterEquipment,
-                DestinyComponentType.ItemInstances);
+                DestinyComponentType.ItemInstances, DestinyComponentType.ItemStats);
 
             var allItems = await _itemFactory.LoadItems(character.Equipment.Data.Items,
-                character.ItemComponents.Instances.Data);
+                character.ItemComponents.Instances.Data,
+                character.ItemComponents.Stats.Data);
             var items = allItems.ToDictionary(item => item.Slot.Hash);
+            var stats = GetStats(items.Values);
 
             var model = new CharacterViewModel()
             {
@@ -90,10 +93,26 @@ namespace Destiny2Builds.Controllers
                 CharacterId = characterId,
                 Items = items,
                 EmblemPath = _bungie.BaseUrl + character.Character.Data.EmblemPath,
-                EmblemBackgroundPath = _bungie.BaseUrl + character.Character.Data.EmblemBackgroundPath
+                EmblemBackgroundPath = _bungie.BaseUrl + character.Character.Data.EmblemBackgroundPath,
+                Stats = stats,
             };
 
             return View(model);
+        }
+
+        private IDictionary<uint, Stat> GetStats(IEnumerable<Item> items)
+        {
+            var allStats = items.SelectMany(item => item.Stats)
+                .Where(stat => stat.AggregationType == DestinyStatAggregationType.Character);
+            var stats = allStats.ToLookup(stat => stat.Hash);
+
+            return stats.ToDictionary(grouping => grouping.Key,
+                grouping =>
+                {
+                    var value = grouping.Sum(stat => stat.Value);
+                    var originalStat = grouping.First();
+                    return new Stat(originalStat, value);
+                });
         }
     }
 }

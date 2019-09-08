@@ -12,6 +12,7 @@ namespace Destiny2Builds.Models
         public IDictionary<ItemSlot.SlotHashes, Item> Items { get; set; } = new Dictionary<ItemSlot.SlotHashes, Item>();
         public string EmblemPath { get; set; }
         public string EmblemBackgroundPath {get; set; }
+        public IDictionary<uint, Stat> Stats { get; set; } = new Dictionary<uint, Stat>();
 
         public IEnumerable<Item> AllItems => Items.Values.OrderBy(item => item.Slot.Order);
     }
