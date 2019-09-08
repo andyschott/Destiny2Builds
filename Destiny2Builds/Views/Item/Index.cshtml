@@ -26,15 +26,22 @@
     <div class="row">
         <div class="col-md-6">
             <ul>
-                @foreach(var socket in Model.Item.Sockets)
+                @foreach(var category in Model.Item.SocketCategories)
                 {
-                    <li>
-                        <select>
-                            @foreach(var perk in socket.Perks)
+                    <li>@category.Name: 
+                        <ul>
+                            @foreach(var socket in category.Sockets)
                             {
-                                <option>@perk.Name</option>
+                                <li>
+                                    <select>
+                                        @foreach(var perk in socket.Perks)
+                                        {
+                                            <option>@perk.Name</option>
+                                        }
+                                    </select>
+                                </li>
                             }
-                        </select>
+                        </ul>
                     </li>
                 }
             </ul>

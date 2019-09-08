@@ -29,15 +29,7 @@ namespace Destiny2Builds.Controllers
                 AccountId = accountId,
                 CharacterId = characterId,
                 Item = item,
-                Sockets = item.Sockets.Select(socket => new SocketViewModel
-                {
-                    Perks = socket.Perks.Select(perk => new SelectListItem
-                    {
-                        Text = perk.Name,
-                        Value = perk.Hash.ToString(),
-                        Selected = perk.IsSelected,
-                    }).ToList()
-                }).ToList()
+                SocketCategories = SocketCategoryViewModel.Convert(item.SocketCategories).ToList()
             };         
             return View(model);
         }

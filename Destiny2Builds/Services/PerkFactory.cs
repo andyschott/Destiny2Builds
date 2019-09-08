@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Destiny2;
+using Destiny2.Definitions;
+using Destiny2.Definitions.Sockets;
 using Destiny2.Entities.Items;
 using Destiny2Builds.Helpers;
 using Destiny2Builds.Models;
@@ -49,7 +52,64 @@ namespace Destiny2Builds.Services
             return await Task.WhenAll(tasks);
         }
 
-        private async Task<Perk> LoadPerk(uint hash, bool isSelected)
+        public async Task<IEnumerable<Perk>> LoadAvailablePerks(DestinyItemSocketEntryDefinition socketEntry,
+            DestinySocketCategoryDefinition categoryDef, IEnumerable<Perk> currentPerks)
+        {
+            var perkGroups = new List<IEnumerable<Perk>>();
+
+            if(socketEntry.PlugSources.HasFlag(SocketPlugSources.InventorySourced))
+            {
+                switch(categoryDef.CategoryStyle)
+                {
+                    case DestinySocketCategoryStyle.Reusable:
+                    {
+                        if(!socketEntry.ReusablePlugItems?.Any() ?? true)
+                        {
+                            // use the (only?) perk in the current perks
+                            perkGroups.Add(currentPerks);
+                        }
+                        else
+                        {
+                            var tasks = socketEntry.ReusablePlugItems.Select(reusablePlug =>
+                                LoadPerk(reusablePlug.PlugItemHash, false));
+                            var perks = await Task.WhenAll(tasks);
+                            perkGroups.Add(perks);
+                        }
+                        break;
+                    }
+                    case DestinySocketCategoryStyle.Consumable:
+                    {
+                        // TODO: Load mods/shaders/whatever from inventory
+                        // Why does the Masterwork Armor slot get here?!?!?
+                        break;
+                    }
+                    default:
+                    {
+                        // Not sure if we'll ever get here...
+                        throw new Exception($"Unexpected DestinySocketCategoryStyle: {categoryDef.CategoryStyle}");
+                    }
+                }
+            }
+
+            if(socketEntry.PlugSources.HasFlag(SocketPlugSources.ReusablePlugItems))
+            {
+                perkGroups.Add(currentPerks);
+            }
+
+            if(socketEntry.PlugSources.HasFlag(SocketPlugSources.ProfilePlugSet))
+            {
+                // TODO: Load from ProfilePlugSets
+            }
+
+            if(socketEntry.PlugSources.HasFlag(SocketPlugSources.CharacterPlugSet))
+            {
+                // TODO: Load from CharacterPlugSets
+            }
+
+            return perkGroups.SelectMany(perkGroup => perkGroup);
+        }
+
+        public async Task<Perk> LoadPerk(uint hash, bool isSelected)
         {
             var plug = await _manifest.LoadPlug(hash);
             var categories = await _manifest.LoadItemCategories(plug.ItemCategoryHashes);

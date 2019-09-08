@@ -86,10 +86,13 @@ namespace Destiny2Builds.Services
             var instanceTask = GetInstance(type, accountId, instanceId);
 
             await Task.WhenAll(itemTask, instanceTask);
+            
+            var sockets = await _socketFactory.LoadSockets(itemTask.Result.item.Sockets,
+                instanceTask.Result.sockets);
 
             return new Item(_bungie.BaseUrl, itemTask.Result.item, itemTask.Result.bucket,
                 instanceId, instanceTask.Result.instance, instanceTask.Result.stats,
-                instanceTask.Result.sockets);
+                sockets);
         }
 
         private static bool ShouldInclude(DestinyInventoryBucketDefinition bucket)
@@ -105,19 +108,19 @@ namespace Destiny2Builds.Services
             return (itemDef, bucket);
         }
 
-        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Stat> stats, IEnumerable<Socket> sockets)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
+        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Stat> stats, IEnumerable<DestinyItemSocketState> sockets)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
         {
             var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
             var instance = await _destiny2.GetItem(accessToken, type, accountId, instanceId,
                 DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets,
                 DestinyComponentType.ItemStats);
 
-            var socketsTask = _socketFactory.LoadSockets(instance.Sockets?.Data.Sockets);
+            // var socketsTask = _socketFactory.LoadSockets(instance.Sockets?.Data.Sockets);
             var statsTask = _statFactory.LoadStats(instance.Instance.Data.PrimaryStat, instance.Stats?.Data.Stats);
 
-            await Task.WhenAll(socketsTask, statsTask);
+            await Task.WhenAll(/*socketsTask, */statsTask);
 
-            return (instance.Instance.Data, statsTask.Result, socketsTask.Result);
+            return (instance.Instance.Data, statsTask.Result, instance.Sockets?.Data.Sockets);
         }
     }
 }

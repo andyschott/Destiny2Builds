@@ -36,32 +36,40 @@ namespace Destiny2Builds.Services
                 .Select(async itemSocket =>
             {
                 var perks = await _perkFactory.LoadPerks(itemSocket);
-                return new Socket(perks);
+                var selectedPerk = perks.FirstOrDefault(perk => perk.IsSelected);
+                return new Socket(selectedPerk, perks);
             });
 
             return await Task.WhenAll(socketTasks);
         }
 
-        public async Task<IEnumerable<Socket>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
+        public async Task<IEnumerable<SocketCategory>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
             IEnumerable<DestinyItemSocketState> itemSockets)
         {
+            var socketCategories = new List<SocketCategory>();
+
             var activePerks = (await _perkFactory.LoadPerks(itemSockets)).ToList();
 
             var socketEntries = socketDefs.SocketEntries.ToArray();
             foreach(var category in socketDefs.SocketCategories)
             {
                 var categoryDef = await _manifest.LoadSocketCategory(category.SocketCategoryHash);
+                var sockets = new List<Socket>();
                 foreach(var index in category.SocketIndexes)
                 {
                     var socketEntry = socketEntries[index];
                     var socketType = await _manifest.LoadSocketType(socketEntry.SocketTypeHash);
                     var perkGroup = FindPerksForSocket(socketType, activePerks);
 
-                    // TODO: Use socketEntry.PlugSources() to find all possible plugs for this socket
+                    var socket = await CreateSocket(socketEntry, socketType, categoryDef, perkGroup);
+                    sockets.Add(socket);
                 }
+
+                var socketCategory = new SocketCategory(categoryDef, sockets);
+                socketCategories.Add(socketCategory);
             }
 
-            return Enumerable.Empty<Socket>();
+            return socketCategories;
         }
 
         private IEnumerable<Perk> FindPerksForSocket(DestinySocketTypeDefinition socketType,
@@ -69,18 +77,23 @@ namespace Destiny2Builds.Services
         {
             var categories = socketType.PlugWhiteList.Select(whiteListEntry => whiteListEntry.CategoryHash)
                 .ToList();
+
             return allPerks.FirstOrDefault(perkGroup =>
             {
-                return perkGroup.Any(perk =>
-                {
-                    var intersection = perk.Categories.Select(category => category.Hash)
-                        .Intersect(categories);
-                    return intersection.Any();
-                    {
-                        
-                    }
-                });
+                var perkCategorieHashes = perkGroup.Select(perk => perk.CategoryHash);
+                var intersection = categories.Intersect(perkCategorieHashes);
+                return intersection.Any();
             });
+        }
+
+        private async Task<Socket> CreateSocket(DestinyItemSocketEntryDefinition socketEntry,
+            DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
+            IEnumerable<Perk> perks)
+        {
+            var availablePerks = await _perkFactory.LoadAvailablePerks(socketEntry,
+                categoryDef, perks);
+            var selectedPerk = perks.FirstOrDefault(perk => perk.IsSelected);
+            return new Socket(selectedPerk, availablePerks);
         }
     }
 }

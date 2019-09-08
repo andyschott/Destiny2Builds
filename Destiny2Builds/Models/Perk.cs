@@ -10,10 +10,12 @@ namespace Destiny2Builds.Models
             : base(baseUrl, plug)
         {
             IsSelected = isSelected;
+            CategoryHash = plug.Plug.PlugCategoryHash;
             Categories = categories;
         }
 
         public bool IsSelected { get; }
+        public uint CategoryHash { get; }
         public IEnumerable<DestinyItemCategoryDefinition> Categories { get; }
     }
 }

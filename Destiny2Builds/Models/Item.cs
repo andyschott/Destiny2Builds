@@ -12,7 +12,7 @@ namespace Destiny2Builds.Models
             DestinyInventoryBucketDefinition bucket, long instanceId = 0,
             DestinyItemInstanceComponent instance = null,
             IEnumerable<Stat> stats = null,
-            IEnumerable<Socket> sockets = null)
+            IEnumerable<SocketCategory> socketCategories = null)
             : base(baseUrl, itemDef)
         {
             PowerLevel = instance?.PrimaryStat?.Value ?? 0;
@@ -20,7 +20,7 @@ namespace Destiny2Builds.Models
             Tier = itemDef.Inventory.TierType;
             ClassType = itemDef.ClassType;
             InstanceId = instanceId;
-            Sockets = sockets?.ToList() ?? Enumerable.Empty<Socket>();
+            SocketCategories = socketCategories?.ToList() ?? Enumerable.Empty<SocketCategory>();
             Stats = stats?.ToList() ?? Enumerable.Empty<Stat>();
         }
 
@@ -39,7 +39,7 @@ namespace Destiny2Builds.Models
         public TierType Tier { get; }
         public DestinyClass ClassType { get; }
         public long InstanceId { get; }
-        public IEnumerable<Socket> Sockets { get; }
+        public IEnumerable<SocketCategory> SocketCategories { get; }
         public IEnumerable<Stat> Stats { get; }
 
         public bool IsWeapon => Slot.IsWeapon;
