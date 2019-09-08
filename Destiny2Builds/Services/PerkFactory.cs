@@ -43,6 +43,12 @@ namespace Destiny2Builds.Services
             return new[] { singlePerk };
         }
 
+        public async Task<IEnumerable<IEnumerable<Perk>>> LoadPerks(IEnumerable<DestinyItemSocketState> sockets)
+        {
+            var tasks = sockets.Select(socket => LoadPerks(socket));
+            return await Task.WhenAll(tasks);
+        }
+
         private async Task<Perk> LoadPerk(uint hash, bool isSelected)
         {
             var plug = await _manifest.LoadPlug(hash);
