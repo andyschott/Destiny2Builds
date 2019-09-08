@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -63,10 +64,11 @@ namespace Destiny2Builds.Services
                     continue;
                 }
 
-                itemStats.TryGetValue(itemComponent.ItemInstanceId, out var statsComponent);
-                var stats = await LoadStats(statsComponent?.Stats);
-
                 itemInstances.TryGetValue(itemComponent.ItemInstanceId, out var instance);
+
+                itemStats.TryGetValue(itemComponent.ItemInstanceId, out var statsComponent);
+                var stats = await LoadStats(instance.PrimaryStat, statsComponent?.Stats);
+
                 items.Add(new Item(_bungie.BaseUrl, itemDef, bucket, itemComponent.ItemInstanceId, instance, stats));
             }
 
@@ -106,7 +108,7 @@ namespace Destiny2Builds.Services
                 DestinyComponentType.ItemStats);
 
             var socketsTask = LoadSockets(instance.Sockets?.Data.Sockets);
-            var statsTask = LoadStats(instance.Stats?.Data.Stats);
+            var statsTask = LoadStats(instance.Instance.Data.PrimaryStat, instance.Stats?.Data.Stats);
 
             await Task.WhenAll(socketsTask, statsTask);
 
@@ -160,16 +162,30 @@ namespace Destiny2Builds.Services
             return new Perk(_bungie.BaseUrl, isSelected, plug, categories);
         }
 
-        private async Task<IEnumerable<Stat>> LoadStats(IDictionary<uint, DestinyStat> stats)
+        private async Task<IEnumerable<Stat>> LoadStats(DestinyStat primaryStat, IDictionary<uint, DestinyStat> stats)
         {
             if(stats == null)
             {
                 return null;
             }
             
-            var statDefs = await _manifest.LoadStats(stats.Keys);
+            var statDefs = await _manifest.LoadStats(stats.Keys.Concat(new[] { primaryStat.StatHash }));
 
-            return statDefs.Select(statDef => new Stat(_bungie.BaseUrl, stats[statDef.Hash], statDef));
+            return statDefs.Select(statDef =>
+            {
+                if(!stats.TryGetValue(statDef.Hash, out var stat))
+                {
+                    if(statDef.Hash == primaryStat.StatHash)
+                    {
+                        stat = primaryStat;
+                    }
+                    else
+                    {
+                        throw new Exception($"Unexpected stat {statDef.DisplayProperties.Name}");
+                    }
+                }
+                return new Stat(_bungie.BaseUrl, stat, statDef);
+            });
         }
     }
 }

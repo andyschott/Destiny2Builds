@@ -24,18 +24,28 @@
         </div>
     </div>
     <div class="row">
-        <ul>
-            @foreach(var socket in Model.Item.Sockets)
-            {
-                <li>
-                    <select>
-                        @foreach(var perk in socket.Perks)
-                        {
-                            <option>@perk.Name</option>
-                        }
-                    </select>
-                </li>
-            }
-        </ul>
+        <div class="col-md-6">
+            <ul>
+                @foreach(var socket in Model.Item.Sockets)
+                {
+                    <li>
+                        <select>
+                            @foreach(var perk in socket.Perks)
+                            {
+                                <option>@perk.Name</option>
+                            }
+                        </select>
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <ul>
+                @foreach(var stat in Model.Item.Stats)
+                {
+                    <li>@stat.Name: @stat.Value</li>
+                }
+            </ul>
+        </div>
     </div>
 </div>
