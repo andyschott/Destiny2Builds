@@ -67,6 +67,9 @@ namespace Destiny2Builds
             });
 
             services.AddScoped<IItemFactory, ItemFactory>();
+            services.AddScoped<ISocketFactory, SocketFactory>();
+            services.AddScoped<IPerkFactory, PerkFactory>();
+            services.AddScoped<IStatFactory, StatFactory>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
