@@ -48,6 +48,7 @@ namespace Destiny2Builds.Services
         {
             var socketCategories = new List<SocketCategory>();
 
+            itemSockets = itemSockets.Where(socket => socket.IsEnabled && socket.IsVisible);
             var activePerks = (await _perkFactory.LoadPerks(itemSockets)).ToList();
 
             var socketEntries = socketDefs.SocketEntries.ToArray();
@@ -58,6 +59,10 @@ namespace Destiny2Builds.Services
                 foreach(var index in category.SocketIndexes)
                 {
                     var socketEntry = socketEntries[index];
+                    if(!socketEntry.DefaultVisible)
+                    {
+                        continue;
+                    }
                     var socketType = await _manifest.LoadSocketType(socketEntry.SocketTypeHash);
                     var perkGroup = FindPerksForSocket(socketType, activePerks);
 
@@ -92,7 +97,7 @@ namespace Destiny2Builds.Services
         {
             var availablePerks = await _perkFactory.LoadAvailablePerks(socketEntry,
                 socketType, categoryDef, perks);
-            var selectedPerk = perks.FirstOrDefault(perk => perk.IsSelected);
+            var selectedPerk = perks?.FirstOrDefault(perk => perk.IsSelected);
             return new Socket(selectedPerk, availablePerks);
         }
     }

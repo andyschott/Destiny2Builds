@@ -118,7 +118,7 @@ namespace Destiny2Builds.Services
                 // TODO: Load from CharacterPlugSets
             }
 
-            return perkGroups.SelectMany(perkGroup => perkGroup);
+            return perkGroups.Where(perkGroup => perkGroup != null).SelectMany(perkGroup => perkGroup);
         }
 
         public async Task<Perk> LoadPerk(uint hash, bool isSelected)
