@@ -24,6 +24,7 @@ namespace Destiny2Builds.Services
         private readonly IPerkFactory _perkFactory;
 
         private const uint ModsCategoryHash = 59;
+        private const uint ShadersCategoryHash = 41;
 
         private static readonly ISet<ItemSlot.SlotHashes> _includedBuckets =
             new HashSet<ItemSlot.SlotHashes>
@@ -96,7 +97,7 @@ namespace Destiny2Builds.Services
             await Task.WhenAll(modsTask, itemTask, instanceTask);
             
             var sockets = await _socketFactory.LoadSockets(itemTask.Result.item.Sockets,
-                instanceTask.Result.sockets, modsTask.Result);
+                instanceTask.Result.sockets, modsTask.Result.mods, modsTask.Result.shaders);
 
             return new Item(_bungie.BaseUrl, itemTask.Result.item, itemTask.Result.bucket,
                 instanceId, instanceTask.Result.instance, instanceTask.Result.stats,
@@ -127,10 +128,11 @@ namespace Destiny2Builds.Services
             return (instance.Instance.Data, stats, instance.Sockets?.Data.Sockets);
         }
 
-        private async Task<IEnumerable<Mod>> LoadAllMods(string accessToken, BungieMembershipType type,
+        private async Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(string accessToken, BungieMembershipType type,
             long accountId, long characterId)
         {
             var mods = new List<Mod>();
+            var shaders = new List<Mod>();
 
             var inventory = await _destiny2.GetProfile(accessToken, type, accountId,
                 DestinyComponentType.ProfileInventories);
@@ -138,16 +140,19 @@ namespace Destiny2Builds.Services
             foreach(var item in inventory.ProfileInventory.Data.Items)
             {
                 var itemDef = await _manifest.LoadInventoryItem(item.ItemHash);
-                if(!itemDef.ItemCategoryHashes.Contains(ModsCategoryHash))
+                if(itemDef.ItemCategoryHashes.Contains(ModsCategoryHash))
                 {
-                    continue;
+                    var mod = await _perkFactory.LoadMod(item, itemDef, false);
+                    mods.Add(mod);
                 }
-
-                var mod = await _perkFactory.LoadMod(item, itemDef, false);
-                mods.Add(mod);
+                else if(itemDef.ItemCategoryHashes.Contains(ShadersCategoryHash))
+                {
+                    var shader = await _perkFactory.LoadMod(item, itemDef, false);
+                    shaders.Add(shader);
+                }
             }
 
-            return mods;
+            return (mods, shaders);
         }
     }
 }

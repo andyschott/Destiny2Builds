@@ -44,7 +44,8 @@ namespace Destiny2Builds.Services
         }
 
         public async Task<IEnumerable<SocketCategory>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
-            IEnumerable<DestinyItemSocketState> itemSockets, IEnumerable<Mod> mods)
+            IEnumerable<DestinyItemSocketState> itemSockets, IEnumerable<Mod> mods,
+            IEnumerable<Mod> shaders)
         {
             var socketCategories = new List<SocketCategory>();
 
@@ -67,7 +68,7 @@ namespace Destiny2Builds.Services
                     var perkGroup = FindPerksForSocket(socketType, activePerks);
 
                     var socket = await CreateSocket(socketEntry, socketType, categoryDef,
-                        mods, perkGroup);
+                        mods, shaders, perkGroup);
                     sockets.Add(socket);
                 }
 
@@ -94,10 +95,10 @@ namespace Destiny2Builds.Services
 
         private async Task<Socket> CreateSocket(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
-            IEnumerable<Mod> mods, IEnumerable<Perk> perks)
+            IEnumerable<Mod> mods, IEnumerable<Mod> shaders, IEnumerable<Perk> perks)
         {
             var availablePerks = await _perkFactory.LoadAvailablePerks(socketEntry,
-                socketType, categoryDef, mods, perks);
+                socketType, categoryDef, mods, shaders, perks);
             var selectedPerk = perks?.FirstOrDefault(perk => perk.IsSelected);
             if(selectedPerk == null)
             {

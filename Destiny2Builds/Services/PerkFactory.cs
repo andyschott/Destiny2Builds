@@ -61,7 +61,7 @@ namespace Destiny2Builds.Services
 
         public async Task<IEnumerable<Perk>> LoadAvailablePerks(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
-            IEnumerable<Mod> mods, IEnumerable<Perk> currentPerks)
+            IEnumerable<Mod> mods, IEnumerable<Mod> shaders, IEnumerable<Perk> currentPerks)
         {
             var perkGroups = new List<IEnumerable<Perk>>();
 
@@ -100,7 +100,7 @@ namespace Destiny2Builds.Services
                         }
                         else
                         {
-                            var perks = FindCompatibleMods(socketEntry, socketType, mods);
+                            var perks = FindCompatibleMods(socketEntry, socketType, mods, shaders);
                             perkGroups.Add(perks);
                         }
                         break;
@@ -149,12 +149,16 @@ namespace Destiny2Builds.Services
             _masterworkSocketTypeHashes.Contains(socketType.Hash);
         
         private IEnumerable<Perk> FindCompatibleMods(DestinyItemSocketEntryDefinition socketEntry,
-            DestinySocketTypeDefinition socketType, IEnumerable<Mod> mods)
+            DestinySocketTypeDefinition socketType, IEnumerable<Mod> mods, IEnumerable<Mod> shaders)
         {
             var categories = socketType.PlugWhiteList.Select(whiteListEntry => whiteListEntry.CategoryHash)
                 .ToHashSet();
 
             var compatibleMods = mods.Where(mod => categories.Contains(mod.CategoryHash));
+            if(!compatibleMods.Any())
+            {
+                compatibleMods = shaders.Where(shader => categories.Contains(shader.CategoryHash));
+            }
             return compatibleMods;
         }
     }
