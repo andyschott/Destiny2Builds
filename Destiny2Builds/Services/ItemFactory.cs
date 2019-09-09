@@ -123,7 +123,7 @@ namespace Destiny2Builds.Services
                 DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets,
                 DestinyComponentType.ItemStats);
 
-            var stats = await _statFactory.LoadStats(instance.Instance.Data.PrimaryStat, instance.Stats?.Data.Stats);
+            var stats = await _statFactory.LoadStats(instance.Instance.Data.PrimaryStat, instance.Stats?.Data?.Stats);
 
             return (instance.Instance.Data, stats, instance.Sockets?.Data.Sockets);
         }
