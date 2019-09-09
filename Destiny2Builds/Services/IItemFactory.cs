@@ -11,6 +11,7 @@ namespace Destiny2Builds.Services
          Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
             IDictionary<long, DestinyItemInstanceComponent> itemInstances,
             IDictionary<long, DestinyItemStatsComponent> itemStats);
-        Task<Item> LoadItem(BungieMembershipType type, long accountId, uint itemHash, long instanceId);
+        Task<Item> LoadItem(BungieMembershipType type, long accountId, long characterId,
+            uint itemHash, long instanceId);
     }
 }

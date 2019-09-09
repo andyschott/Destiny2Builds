@@ -56,7 +56,7 @@ namespace Destiny2Builds.Services
 
         public async Task<IEnumerable<Perk>> LoadAvailablePerks(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
-            IEnumerable<Perk> currentPerks)
+            IEnumerable<Mod> mods, IEnumerable<Perk> currentPerks)
         {
             var perkGroups = new List<IEnumerable<Perk>>();
 
@@ -93,6 +93,11 @@ namespace Destiny2Builds.Services
                             var perks = await Task.WhenAll(tasks);
                             perkGroups.Add(perks);
                         }
+                        else
+                        {
+                            var perks = await FindCompatibleMods(socketEntry, mods);
+                            perkGroups.Add(perks);
+                        }
                         break;
                     }
                     default:
@@ -125,10 +130,32 @@ namespace Destiny2Builds.Services
         {
             var plug = await _manifest.LoadPlug(hash);
             var categories = await _manifest.LoadItemCategories(plug.ItemCategoryHashes);
-            return new Perk(_bungie.BaseUrl, isSelected, plug, categories);
+            return new Perk(isSelected, plug, categories);
         }
+
+        public async Task<Mod> LoadMod(DestinyItemComponent item, DestinyInventoryItemDefinition itemDef, bool isSelected)
+        {
+            var categories = await _manifest.LoadItemCategories(itemDef.ItemCategoryHashes);
+            return new Mod(isSelected, itemDef, categories, item.Quantity);
+        }
+
 
         private static bool IsMasterworkSocket(DestinySocketTypeDefinition socketType) =>
             socketType.Hash == MasterworkSocketTypeHash;
+        
+        private async Task<IEnumerable<Perk>> FindCompatibleMods(DestinyItemSocketEntryDefinition socketEntry,
+            IEnumerable<Mod> mods)
+        {
+            var itemDef = await _manifest.LoadInventoryItem(socketEntry.SingleInitialItemHash);
+            var categoryHashes = itemDef.ItemCategoryHashes.OrderBy(hash => hash);
+
+            var compatibleMods = mods.Where(mod =>
+            {
+                var modCategoryHashes = mod.Categories.Select(category => category.Hash)
+                    .OrderBy(hash => hash);
+                return modCategoryHashes.SequenceEqual(categoryHashes);
+            });
+            return compatibleMods;
+        }
     }
 }

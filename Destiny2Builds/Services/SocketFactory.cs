@@ -44,7 +44,7 @@ namespace Destiny2Builds.Services
         }
 
         public async Task<IEnumerable<SocketCategory>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
-            IEnumerable<DestinyItemSocketState> itemSockets)
+            IEnumerable<DestinyItemSocketState> itemSockets, IEnumerable<Mod> mods)
         {
             var socketCategories = new List<SocketCategory>();
 
@@ -66,7 +66,8 @@ namespace Destiny2Builds.Services
                     var socketType = await _manifest.LoadSocketType(socketEntry.SocketTypeHash);
                     var perkGroup = FindPerksForSocket(socketType, activePerks);
 
-                    var socket = await CreateSocket(socketEntry, socketType, categoryDef, perkGroup);
+                    var socket = await CreateSocket(socketEntry, socketType, categoryDef,
+                        mods, perkGroup);
                     sockets.Add(socket);
                 }
 
@@ -93,11 +94,22 @@ namespace Destiny2Builds.Services
 
         private async Task<Socket> CreateSocket(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
-            IEnumerable<Perk> perks)
+            IEnumerable<Mod> mods, IEnumerable<Perk> perks)
         {
             var availablePerks = await _perkFactory.LoadAvailablePerks(socketEntry,
-                socketType, categoryDef, perks);
+                socketType, categoryDef, mods, perks);
             var selectedPerk = perks?.FirstOrDefault(perk => perk.IsSelected);
+            if(selectedPerk == null)
+            {
+                var initialMod = await _manifest.LoadInventoryItem(socketEntry.SingleInitialItemHash);
+                var categoryDefs = await _manifest.LoadItemCategories(initialMod.ItemCategoryHashes);
+                selectedPerk = new Perk(true, initialMod, categoryDefs);
+            }
+
+            if(!availablePerks.Contains(selectedPerk, AbstractDestinyObjectComparer.Instance))
+            {
+                availablePerks = availablePerks.Concat(new[] { selectedPerk });
+            }
             return new Socket(selectedPerk, availablePerks);
         }
     }

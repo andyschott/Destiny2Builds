@@ -22,7 +22,7 @@ namespace Destiny2Builds.Controllers
         public async Task<IActionResult> Index(BungieMembershipType type, long accountId,
             long characterId, uint itemHash, long instanceId)
         {
-            var item = await _itemFactory.LoadItem(type, accountId, itemHash, instanceId);
+            var item = await _itemFactory.LoadItem(type, accountId, characterId, itemHash, instanceId);
             var model = new ItemViewModel
             {
                 Type = type,

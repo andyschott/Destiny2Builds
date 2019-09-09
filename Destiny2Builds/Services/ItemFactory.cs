@@ -21,6 +21,9 @@ namespace Destiny2Builds.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly ISocketFactory _socketFactory;
         private readonly IStatFactory _statFactory;
+        private readonly IPerkFactory _perkFactory;
+
+        private const uint ModsCategoryHash = 59;
 
         private static readonly ISet<ItemSlot.SlotHashes> _includedBuckets =
             new HashSet<ItemSlot.SlotHashes>
@@ -38,7 +41,7 @@ namespace Destiny2Builds.Services
 
         public ItemFactory(IDestiny2 destiny2, IManifest manifest, IOptions<BungieSettings> bungie,
             IHttpContextAccessor contextAccessor, ISocketFactory socketFactory,
-            IStatFactory statFactory)
+            IStatFactory statFactory, IPerkFactory perkFactory)
         {
             _destiny2 = destiny2;
             _manifest = manifest;
@@ -46,6 +49,7 @@ namespace Destiny2Builds.Services
             _contextAccessor = contextAccessor;
             _socketFactory = socketFactory;
             _statFactory = statFactory;
+            _perkFactory = perkFactory;
         }
         
         public async Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
@@ -80,15 +84,19 @@ namespace Destiny2Builds.Services
             return items;
         }
 
-        public async Task<Item> LoadItem(BungieMembershipType type, long accountId, uint itemHash, long instanceId)
+        public async Task<Item> LoadItem(BungieMembershipType type, long accountId, long characterId,
+            uint itemHash, long instanceId)
         {
-            var itemTask = GetItemDefinition(itemHash);
-            var instanceTask = GetInstance(type, accountId, instanceId);
+            var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
 
-            await Task.WhenAll(itemTask, instanceTask);
+            var modsTask = LoadAllMods(accessToken, type, accountId, characterId);
+            var itemTask = GetItemDefinition(itemHash);
+            var instanceTask = GetInstance(accessToken, type, accountId, instanceId);
+
+            await Task.WhenAll(modsTask, itemTask, instanceTask);
             
             var sockets = await _socketFactory.LoadSockets(itemTask.Result.item.Sockets,
-                instanceTask.Result.sockets);
+                instanceTask.Result.sockets, modsTask.Result);
 
             return new Item(_bungie.BaseUrl, itemTask.Result.item, itemTask.Result.bucket,
                 instanceId, instanceTask.Result.instance, instanceTask.Result.stats,
@@ -108,19 +116,38 @@ namespace Destiny2Builds.Services
             return (itemDef, bucket);
         }
 
-        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Stat> stats, IEnumerable<DestinyItemSocketState> sockets)> GetInstance(BungieMembershipType type, long accountId, long instanceId)
+        private async Task<(DestinyItemInstanceComponent instance, IEnumerable<Stat> stats, IEnumerable<DestinyItemSocketState> sockets)> GetInstance(string accessToken, BungieMembershipType type, long accountId, long instanceId)
         {
-            var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
             var instance = await _destiny2.GetItem(accessToken, type, accountId, instanceId,
                 DestinyComponentType.ItemInstances, DestinyComponentType.ItemSockets,
                 DestinyComponentType.ItemStats);
 
-            // var socketsTask = _socketFactory.LoadSockets(instance.Sockets?.Data.Sockets);
-            var statsTask = _statFactory.LoadStats(instance.Instance.Data.PrimaryStat, instance.Stats?.Data.Stats);
+            var stats = await _statFactory.LoadStats(instance.Instance.Data.PrimaryStat, instance.Stats?.Data.Stats);
 
-            await Task.WhenAll(/*socketsTask, */statsTask);
+            return (instance.Instance.Data, stats, instance.Sockets?.Data.Sockets);
+        }
 
-            return (instance.Instance.Data, statsTask.Result, instance.Sockets?.Data.Sockets);
+        private async Task<IEnumerable<Mod>> LoadAllMods(string accessToken, BungieMembershipType type,
+            long accountId, long characterId)
+        {
+            var mods = new List<Mod>();
+
+            var inventory = await _destiny2.GetProfile(accessToken, type, accountId,
+                DestinyComponentType.ProfileInventories);
+
+            foreach(var item in inventory.ProfileInventory.Data.Items)
+            {
+                var itemDef = await _manifest.LoadInventoryItem(item.ItemHash);
+                if(!itemDef.ItemCategoryHashes.Contains(ModsCategoryHash))
+                {
+                    continue;
+                }
+
+                var mod = await _perkFactory.LoadMod(item, itemDef, false);
+                mods.Add(mod);
+            }
+
+            return mods;
         }
     }
 }

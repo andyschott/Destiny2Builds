@@ -5,9 +5,9 @@ namespace Destiny2Builds.Models
 {
     public class Perk : AbstractDestinyObject
     {
-        public Perk(string baseUrl, bool isSelected, DestinyInventoryItemDefinition plug,
+        public Perk(bool isSelected, DestinyInventoryItemDefinition plug,
             IEnumerable<DestinyItemCategoryDefinition> categories)
-            : base(baseUrl, plug)
+            : base(string.Empty, plug)
         {
             IsSelected = isSelected;
             CategoryHash = plug.Plug.PlugCategoryHash;
