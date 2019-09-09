@@ -26,20 +26,14 @@
     <div class="row">
         <div class="col-md-6">
             <ul>
-                @foreach(var category in Model.Item.SocketCategories)
+                @foreach(var category in Model.SocketCategories)
                 {
                     <li>@category.Name: 
                         <ul>
                             @foreach(var socket in category.Sockets)
                             {
-                                <li>
-                                    <select>
-                                        @foreach(var perk in socket.Perks)
-                                        {
-                                            <option>@perk.Name</option>
-                                        }
-                                    </select>
-                                </li>
+                                // TODO: This might not work when chnaging selecting and looking for updates.
+                                <li>@Html.DropDownList("socket", socket.Perks)</li>
                             }
                         </ul>
                     </li>
