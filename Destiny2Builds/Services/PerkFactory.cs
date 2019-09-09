@@ -17,7 +17,12 @@ namespace Destiny2Builds.Services
         private readonly IManifest _manifest;
         private readonly BungieSettings _bungie;
 
-        private const uint MasterworkSocketTypeHash = 501110267;
+        private static readonly ISet<uint> _masterworkSocketTypeHashes =
+            new HashSet<uint>
+            {
+                501110267,  // Armor
+                2218962841, // Weapon
+            };
 
         public PerkFactory(IManifest manifest, IOptions<BungieSettings> bungie)
         {
@@ -95,7 +100,7 @@ namespace Destiny2Builds.Services
                         }
                         else
                         {
-                            var perks = await FindCompatibleMods(socketEntry, mods);
+                            var perks = FindCompatibleMods(socketEntry, socketType, mods);
                             perkGroups.Add(perks);
                         }
                         break;
@@ -141,20 +146,15 @@ namespace Destiny2Builds.Services
 
 
         private static bool IsMasterworkSocket(DestinySocketTypeDefinition socketType) =>
-            socketType.Hash == MasterworkSocketTypeHash;
+            _masterworkSocketTypeHashes.Contains(socketType.Hash);
         
-        private async Task<IEnumerable<Perk>> FindCompatibleMods(DestinyItemSocketEntryDefinition socketEntry,
-            IEnumerable<Mod> mods)
+        private IEnumerable<Perk> FindCompatibleMods(DestinyItemSocketEntryDefinition socketEntry,
+            DestinySocketTypeDefinition socketType, IEnumerable<Mod> mods)
         {
-            var itemDef = await _manifest.LoadInventoryItem(socketEntry.SingleInitialItemHash);
-            var categoryHashes = itemDef.ItemCategoryHashes.OrderBy(hash => hash);
+            var categories = socketType.PlugWhiteList.Select(whiteListEntry => whiteListEntry.CategoryHash)
+                .ToHashSet();
 
-            var compatibleMods = mods.Where(mod =>
-            {
-                var modCategoryHashes = mod.Categories.Select(category => category.Hash)
-                    .OrderBy(hash => hash);
-                return modCategoryHashes.SequenceEqual(categoryHashes);
-            });
+            var compatibleMods = mods.Where(mod => categories.Contains(mod.CategoryHash));
             return compatibleMods;
         }
     }
