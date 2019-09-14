@@ -14,7 +14,7 @@ namespace Destiny2Builds.Models
             Categories = categories;
         }
 
-        public bool IsSelected { get; }
+        public bool IsSelected { get; set; }
         public uint CategoryHash { get; }
         public IEnumerable<DestinyItemCategoryDefinition> Categories { get; }
     }

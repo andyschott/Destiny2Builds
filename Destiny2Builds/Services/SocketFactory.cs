@@ -101,10 +101,16 @@ namespace Destiny2Builds.Services
                 selectedPerk = new Perk(true, initialMod, categoryDefs);
             }
 
-            if(!availablePerks.Contains(selectedPerk, AbstractDestinyObjectComparer.Instance))
+            var currentPerk = availablePerks.FirstOrDefault(perk => perk.Hash == selectedPerk.Hash);
+            if(currentPerk == null)
             {
                 availablePerks = availablePerks.Concat(new[] { selectedPerk });
             }
+            else if(!currentPerk.IsSelected)
+            {
+                currentPerk.IsSelected = true;
+            }
+            
             return new Socket(selectedPerk, availablePerks);
         }
     }
