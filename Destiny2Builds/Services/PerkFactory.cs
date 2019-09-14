@@ -17,11 +17,12 @@ namespace Destiny2Builds.Services
         private readonly IManifest _manifest;
         private readonly BungieSettings _bungie;
 
-        private static readonly ISet<uint> _masterworkSocketTypeHashes =
+        private static readonly ISet<uint> _loadFromReusablePlugItemSocketTypeHashes =
             new HashSet<uint>
             {
                 501110267,  // Armor
                 2218962841, // Weapon
+                354911055,  // Ghost Shell Projections
             };
 
         public PerkFactory(IManifest manifest, IOptions<BungieSettings> bungie)
@@ -87,15 +88,12 @@ namespace Destiny2Builds.Services
                     }
                     case DestinySocketCategoryStyle.Consumable:
                     {
-                        // TODO: Load mods/shaders/whatever from inventory
                         // Why does the Masterwork Armor slot get here?!?!?
-                        if(IsMasterworkSocket(socketType))
+                        if(ShouldLoadFromReusablePlugItems(socketType))
                         {
                             // All of the possible Masterwork armor plugs are in the
                             // ReusablePlugItems on the SocketEntry.
-                            var tasks = socketEntry.ReusablePlugItems.Select(reusablePlug =>
-                                LoadPerk(reusablePlug.PlugItemHash, false));
-                            var perks = await Task.WhenAll(tasks);
+                            var perks = await LoadReusablePlugItems(socketEntry);
                             perkGroups.Add(perks);
                         }
                         else
@@ -104,6 +102,12 @@ namespace Destiny2Builds.Services
                             perkGroups.Add(perks);
                         }
                         break;
+                    }
+                    case DestinySocketCategoryStyle.Unlockable:
+                    {
+                        // Only known case of getting here is ghost shell perks.
+                        // Treat these like normal item perks and hope for the best.
+                        goto case DestinySocketCategoryStyle.Reusable;
                     }
                     default:
                     {
@@ -145,8 +149,8 @@ namespace Destiny2Builds.Services
         }
 
 
-        private static bool IsMasterworkSocket(DestinySocketTypeDefinition socketType) =>
-            _masterworkSocketTypeHashes.Contains(socketType.Hash);
+        private static bool ShouldLoadFromReusablePlugItems(DestinySocketTypeDefinition socketType) =>
+            _loadFromReusablePlugItemSocketTypeHashes.Contains(socketType.Hash);
         
         private IEnumerable<Perk> FindCompatibleMods(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, IEnumerable<Mod> mods, IEnumerable<Mod> shaders)
@@ -160,6 +164,14 @@ namespace Destiny2Builds.Services
                 compatibleMods = shaders.Where(shader => categories.Contains(shader.CategoryHash));
             }
             return compatibleMods;
+        }
+
+        private async Task<IEnumerable<Perk>> LoadReusablePlugItems(DestinyItemSocketEntryDefinition socketEntry)
+        {
+            var tasks = socketEntry.ReusablePlugItems.Select(reusablePlug =>
+                LoadPerk(reusablePlug.PlugItemHash, false));
+            var perks = await Task.WhenAll(tasks);
+            return perks;
         }
     }
 }
