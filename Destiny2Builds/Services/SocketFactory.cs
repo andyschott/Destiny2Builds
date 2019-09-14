@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -49,8 +50,7 @@ namespace Destiny2Builds.Services
         {
             var socketCategories = new List<SocketCategory>();
 
-            itemSockets = itemSockets.Where(socket => socket.IsEnabled && socket.IsVisible);
-            var activePerks = (await _perkFactory.LoadPerks(itemSockets)).ToList();
+            var socketArray = itemSockets.ToArray();
 
             var socketEntries = socketDefs.SocketEntries.ToArray();
             foreach(var category in socketDefs.SocketCategories)
@@ -64,11 +64,19 @@ namespace Destiny2Builds.Services
                     {
                         continue;
                     }
-                    var socketType = await _manifest.LoadSocketType(socketEntry.SocketTypeHash);
-                    var perkGroup = FindPerksForSocket(socketType, activePerks);
 
+                    // Technically this should use the DestinySocketTypeDefinition.PlugWhiteList
+                    // to match the categories of the perks in a socket. Unfortuantely that
+                    // doesn't work for weapons - the two columns of perks have the same
+                    // DestinySocketTypeDefinition and thus the code can't tell them apart. :(
+                    // Instead, assume that the sockets in the array of DestinyItemSocketState's
+                    // are in the same order as the sockets in the DestinyItemSocketBlockDefinition
+                    // and hope for the best.
+                    var perks = await _perkFactory.LoadPerks(socketArray[index]);
+
+                    var socketType = await _manifest.LoadSocketType(socketEntry.SocketTypeHash);
                     var socket = await CreateSocket(socketEntry, socketType, categoryDef,
-                        mods, shaders, perkGroup);
+                        mods, shaders, perks);
                     sockets.Add(socket);
                 }
 
@@ -77,20 +85,6 @@ namespace Destiny2Builds.Services
             }
 
             return socketCategories;
-        }
-
-        private IEnumerable<Perk> FindPerksForSocket(DestinySocketTypeDefinition socketType,
-            IEnumerable<IEnumerable<Perk>> allPerks)
-        {
-            var categories = socketType.PlugWhiteList.Select(whiteListEntry => whiteListEntry.CategoryHash)
-                .ToList();
-
-            return allPerks.FirstOrDefault(perkGroup =>
-            {
-                var perkCategorieHashes = perkGroup.Select(perk => perk.CategoryHash);
-                var intersection = categories.Intersect(perkCategorieHashes);
-                return intersection.Any();
-            });
         }
 
         private async Task<Socket> CreateSocket(DestinyItemSocketEntryDefinition socketEntry,
