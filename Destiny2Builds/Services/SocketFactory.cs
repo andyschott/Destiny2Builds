@@ -14,14 +14,14 @@ namespace Destiny2Builds.Services
 {
     public class SocketFactory : ISocketFactory
     {
-        private readonly IManifest _manifest;
+        private readonly IManifestCache _cache;
         private readonly BungieSettings _bungie;
         private readonly IPerkFactory _perkFactory;
 
-        public SocketFactory(IManifest manifest, IOptions<BungieSettings> bungie,
+        public SocketFactory(IManifestCache cache, IOptions<BungieSettings> bungie,
             IPerkFactory perkFactory)
         {
-            _manifest = manifest;
+            _cache = cache;
             _bungie = bungie.Value;
             _perkFactory = perkFactory;
         }
@@ -53,7 +53,7 @@ namespace Destiny2Builds.Services
 
             var socketCategoryTasks = socketDefs.SocketCategories.Select(async category =>
             {
-                var categoryDef = await _manifest.LoadSocketCategory(category.SocketCategoryHash);
+                var categoryDef = await _cache.GetSocketCategoryDef(category.SocketCategoryHash);
                 var categoryEntries = category.SocketIndexes.Select(index => (entry: socketEntries[index], socket: socketArray[index]))
                     .Where(item => item.entry.DefaultVisible);
                 
@@ -67,7 +67,7 @@ namespace Destiny2Builds.Services
                     // are in the same order as the sockets in the DestinyItemSocketBlockDefinition
                     // and hope for the best.
                     var perksTask = _perkFactory.LoadPerks(item.socket);
-                    var socketTypeTask = _manifest.LoadSocketType(item.entry.SocketTypeHash);
+                    var socketTypeTask = _cache.GetSocketTypeDef(item.entry.SocketTypeHash);
 
                     await Task.WhenAll(perksTask, socketTypeTask);
 
@@ -92,8 +92,8 @@ namespace Destiny2Builds.Services
             var selectedPerk = perks?.FirstOrDefault(perk => perk.IsSelected);
             if(selectedPerk == null)
             {
-                var initialMod = await _manifest.LoadInventoryItem(socketEntry.SingleInitialItemHash);
-                var categoryDefs = await _manifest.LoadItemCategories(initialMod.ItemCategoryHashes);
+                var initialMod = await _cache.GetInventoryItemDef(socketEntry.SingleInitialItemHash);
+                var categoryDefs = await _cache.GetItemCategoryDefinitions(initialMod.ItemCategoryHashes);
                 selectedPerk = new Perk(true, initialMod, categoryDefs);
             }
 

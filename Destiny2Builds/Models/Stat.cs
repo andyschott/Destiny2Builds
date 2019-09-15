@@ -5,8 +5,8 @@ namespace Destiny2Builds.Models
 {
     public class Stat : AbstractDestinyObject
     {
-        public Stat(string baseUrl, DestinyStat stat, DestinyStatDefinition statDef)
-            : base(baseUrl, statDef)
+        public Stat(DestinyStat stat, DestinyStatDefinition statDef)
+            : base(string.Empty, statDef)
         {
             AggregationType = statDef.AggregationType;
             Value = stat.Value;

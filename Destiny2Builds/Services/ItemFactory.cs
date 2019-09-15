@@ -16,12 +16,12 @@ namespace Destiny2Builds.Services
     public class ItemFactory : IItemFactory
     {
         private readonly IDestiny2 _destiny2;
-        private readonly IManifest _manifest;
         private readonly BungieSettings _bungie;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly ISocketFactory _socketFactory;
         private readonly IStatFactory _statFactory;
         private readonly IPerkFactory _perkFactory;
+        private readonly IManifestCache _cache;
 
         private static readonly ISet<ItemSlot.SlotHashes> _includedBuckets =
             new HashSet<ItemSlot.SlotHashes>
@@ -37,17 +37,17 @@ namespace Destiny2Builds.Services
                 ItemSlot.SlotHashes.Ghost,
             };
 
-        public ItemFactory(IDestiny2 destiny2, IManifest manifest, IOptions<BungieSettings> bungie,
+        public ItemFactory(IDestiny2 destiny2, IOptions<BungieSettings> bungie,
             IHttpContextAccessor contextAccessor, ISocketFactory socketFactory,
-            IStatFactory statFactory, IPerkFactory perkFactory)
+            IStatFactory statFactory, IPerkFactory perkFactory, IManifestCache cache)
         {
             _destiny2 = destiny2;
-            _manifest = manifest;
             _bungie = bungie.Value;
             _contextAccessor = contextAccessor;
             _socketFactory = socketFactory;
             _statFactory = statFactory;
             _perkFactory = perkFactory;
+            _cache = cache;
         }
         
         public async Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
@@ -56,17 +56,11 @@ namespace Destiny2Builds.Services
             IDictionary<long, DestinyItemSocketsComponent> itemSockets,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders)
         {
-            var buckets = new Dictionary<long, DestinyInventoryBucketDefinition>();
-
             var items = new List<Item>();
             foreach(var itemComponent in itemComponents)
             {
-                var itemDef = await _manifest.LoadInventoryItem(itemComponent.ItemHash);
-                if(!buckets.TryGetValue(itemDef.Inventory.BucketTypeHash, out var bucket))
-                {
-                    bucket = await _manifest.LoadBucket(itemDef.Inventory.BucketTypeHash);
-                    buckets.Add(bucket.Hash, bucket);
-                }
+                var itemDef = await _cache.GetInventoryItemDef(itemComponent.ItemHash);
+                var bucket = await _cache.GetBucketDef(itemDef.Inventory.BucketTypeHash);
 
                 if(!ShouldInclude(bucket))
                 {
@@ -117,8 +111,8 @@ namespace Destiny2Builds.Services
 
         private async Task<(DestinyInventoryItemDefinition item, DestinyInventoryBucketDefinition bucket)> GetItemDefinition(uint itemHash)
         {
-            var itemDef = await _manifest.LoadInventoryItem(itemHash);
-            var bucket = await _manifest.LoadBucket(itemDef.Inventory.BucketTypeHash);
+            var itemDef = await _cache.GetInventoryItemDef(itemHash);
+            var bucket = await _cache.GetBucketDef(itemDef.Inventory.BucketTypeHash);
 
             return (itemDef, bucket);
         }

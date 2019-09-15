@@ -11,13 +11,11 @@ namespace Destiny2Builds.Services
 {
     public class StatFactory : IStatFactory
     {
-        private readonly IManifest _manifest;
-        private readonly BungieSettings _bungie;
+        private readonly IManifestCache _cache;
 
-        public StatFactory(IManifest manifest, IOptions<BungieSettings> bungie)
+        public StatFactory(IManifestCache cache)
         {
-            _manifest = manifest;
-            _bungie = bungie.Value;
+            _cache = cache;
         }
         
         public async Task<IEnumerable<Stat>> LoadStats(DestinyStat primaryStat, IDictionary<uint, DestinyStat> stats)
@@ -27,7 +25,7 @@ namespace Destiny2Builds.Services
                 return null;
             }
             
-            var statDefs = await _manifest.LoadStats(stats.Keys.Concat(new[] { primaryStat.StatHash }));
+            var statDefs = await _cache.GetStatDefs(stats.Keys.Concat(new[] { primaryStat.StatHash }));
 
             return statDefs.Select(statDef =>
             {
@@ -42,7 +40,7 @@ namespace Destiny2Builds.Services
                         throw new Exception($"Unexpected stat {statDef.DisplayProperties.Name}");
                     }
                 }
-                return new Stat(_bungie.BaseUrl, stat, statDef);
+                return new Stat(stat, statDef);
             });
         }
     }
