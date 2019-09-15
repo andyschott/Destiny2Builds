@@ -54,12 +54,6 @@ namespace Destiny2Builds.Services
             return new[] { singlePerk };
         }
 
-        public async Task<IEnumerable<IEnumerable<Perk>>> LoadPerks(IEnumerable<DestinyItemSocketState> sockets)
-        {
-            var tasks = sockets.Select(socket => LoadPerks(socket));
-            return await Task.WhenAll(tasks);
-        }
-
         public async Task<IEnumerable<Perk>> LoadAvailablePerks(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders, IEnumerable<Perk> currentPerks)
@@ -79,9 +73,7 @@ namespace Destiny2Builds.Services
                         }
                         else
                         {
-                            var tasks = socketEntry.ReusablePlugItems.Select(reusablePlug =>
-                                LoadPerk(reusablePlug.PlugItemHash, false));
-                            var perks = await Task.WhenAll(tasks);
+                            var perks = await LoadReusablePlugItems(socketEntry);
                             perkGroups.Add(perks);
                         }
                         break;

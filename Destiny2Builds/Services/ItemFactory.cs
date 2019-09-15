@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -56,32 +55,34 @@ namespace Destiny2Builds.Services
             IDictionary<long, DestinyItemSocketsComponent> itemSockets,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders)
         {
-            var items = new List<Item>();
-            foreach(var itemComponent in itemComponents)
+            var tasks = itemComponents.Select(async itemComponent => 
             {
                 var itemDef = await _cache.GetInventoryItemDef(itemComponent.ItemHash);
                 var bucket = await _cache.GetBucketDef(itemDef.Inventory.BucketTypeHash);
 
-                if(!ShouldInclude(bucket))
-                {
-                    continue;
-                }
+                return new { itemComponent, itemDef, bucket };
+            });
 
-                itemInstances.TryGetValue(itemComponent.ItemInstanceId, out var instance);
+            var info = await Task.WhenAll(tasks);
+            var info2 = info.Where(item => ShouldInclude(item.bucket));
 
-                itemStats.TryGetValue(itemComponent.ItemInstanceId, out var statsComponent);
-                itemSockets.TryGetValue(itemComponent.ItemInstanceId, out var socketsComponent);
+            var itemTasks = info2.Select(async item =>
+            {
+                itemInstances.TryGetValue(item.itemComponent.ItemInstanceId, out var instance);
+                itemStats.TryGetValue(item.itemComponent.ItemInstanceId, out var statsComponent);
+                itemSockets.TryGetValue(item.itemComponent.ItemInstanceId, out var socketsComponent);
 
                 var statsTask = _statFactory.LoadStats(instance.PrimaryStat, statsComponent?.Stats);
-                var socketsTask = _socketFactory.LoadSockets(itemDef.Sockets, socketsComponent.Sockets,
+                var socketsTask = _socketFactory.LoadSockets(item.itemDef.Sockets, socketsComponent.Sockets,
                     mods, shaders);
 
                 await Task.WhenAll(statsTask, socketsTask);
 
-                items.Add(new Item(_bungie.BaseUrl, itemDef, bucket, itemComponent.ItemInstanceId, instance,
-                    statsTask.Result, socketsTask.Result));
-            }
+                return new Item(_bungie.BaseUrl, item.itemDef, item.bucket, item.itemComponent.ItemInstanceId, instance,
+                    statsTask.Result, socketsTask.Result);
+            });
 
+            var items = await Task.WhenAll(itemTasks);
             return items;
         }
 

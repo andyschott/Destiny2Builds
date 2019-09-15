@@ -8,7 +8,6 @@ namespace Destiny2Builds.Services
 {
     public interface ISocketFactory
     {
-        Task<IEnumerable<Socket>> LoadSockets(IEnumerable<DestinyItemSocketState> itemSockets);
         Task<IEnumerable<SocketCategory>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
             IEnumerable<DestinyItemSocketState> itemSockets,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders);

@@ -11,7 +11,6 @@ namespace Destiny2Builds.Services
     public interface IPerkFactory
     {
          Task<IEnumerable<Perk>> LoadPerks(DestinyItemSocketState socket);
-         Task<IEnumerable<IEnumerable<Perk>>> LoadPerks(IEnumerable<DestinyItemSocketState> sockets);
          Task<IEnumerable<Perk>> LoadAvailablePerks(DestinyItemSocketEntryDefinition socketEntry,
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders, IEnumerable<Perk> currentPerks);

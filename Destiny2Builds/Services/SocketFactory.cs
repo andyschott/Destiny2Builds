@@ -26,24 +26,6 @@ namespace Destiny2Builds.Services
             _perkFactory = perkFactory;
         }
 
-        public async Task<IEnumerable<Socket>> LoadSockets(IEnumerable<DestinyItemSocketState> itemSockets)
-        {
-            if(itemSockets == null)
-            {
-                return null;
-            }
-
-            var socketTasks = itemSockets.Where(socket => socket.IsEnabled && socket.IsVisible)
-                .Select(async itemSocket =>
-            {
-                var perks = await _perkFactory.LoadPerks(itemSocket);
-                var selectedPerk = perks.FirstOrDefault(perk => perk.IsSelected);
-                return new Socket(selectedPerk, perks);
-            });
-
-            return await Task.WhenAll(socketTasks);
-        }
-
         public async Task<IEnumerable<SocketCategory>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
             IEnumerable<DestinyItemSocketState> itemSockets, IEnumerable<Mod> mods,
             IEnumerable<Mod> shaders)
@@ -92,9 +74,7 @@ namespace Destiny2Builds.Services
             var selectedPerk = perks?.FirstOrDefault(perk => perk.IsSelected);
             if(selectedPerk == null)
             {
-                var initialMod = await _cache.GetInventoryItemDef(socketEntry.SingleInitialItemHash);
-                var categoryDefs = await _cache.GetItemCategoryDefinitions(initialMod.ItemCategoryHashes);
-                selectedPerk = new Perk(true, initialMod, categoryDefs);
+                selectedPerk = await _perkFactory.LoadPerk(socketEntry.SingleInitialItemHash, true);
             }
 
             var currentPerk = availablePerks.FirstOrDefault(perk => perk.Hash == selectedPerk.Hash);

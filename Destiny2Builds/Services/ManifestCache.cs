@@ -71,7 +71,7 @@ namespace Destiny2Builds.Services
 
         class Cache<T> where T: AbstractDefinition
         {
-            private readonly IDictionary<uint, T> _cache = new ConcurrentDictionary<uint, T>();
+            private readonly ConcurrentDictionary<uint, T> _cache = new ConcurrentDictionary<uint, T>();
             private readonly Func<uint, Task<T>> _loader;
 
             public Cache(Func<uint, Task<T>> loader)
@@ -87,14 +87,13 @@ namespace Destiny2Builds.Services
                 }
 
                 value = await _loader(hash);
-                _cache.TryAdd(hash, value);
-                return value;
+                return _cache.GetOrAdd(hash, value);
             }
         }
 
         class CollectionCache<T> where T: AbstractDefinition
         {
-            private readonly IDictionary<uint, T> _cache = new ConcurrentDictionary<uint, T>();
+            private readonly ConcurrentDictionary<uint, T> _cache = new ConcurrentDictionary<uint, T>();
             private readonly Func<IEnumerable<uint>, Task<IEnumerable<T>>> _loader;
 
             public CollectionCache(Func<IEnumerable<uint>, Task<IEnumerable<T>>> loader)
@@ -124,8 +123,7 @@ namespace Destiny2Builds.Services
                     var loaded = await _loader(needToLoad);
                     foreach(var value in loaded)
                     {
-                        _cache.TryAdd(value.Hash, value);
-                        results.Add(value);
+                        results.Add(_cache.GetOrAdd(value.Hash, value));
                     }
                 }
 
