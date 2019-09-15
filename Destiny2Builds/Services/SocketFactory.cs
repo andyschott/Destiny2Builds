@@ -48,23 +48,17 @@ namespace Destiny2Builds.Services
             IEnumerable<DestinyItemSocketState> itemSockets, IEnumerable<Mod> mods,
             IEnumerable<Mod> shaders)
         {
-            var socketCategories = new List<SocketCategory>();
-
             var socketArray = itemSockets.ToArray();
-
             var socketEntries = socketDefs.SocketEntries.ToArray();
-            foreach(var category in socketDefs.SocketCategories)
+
+            var socketCategoryTasks = socketDefs.SocketCategories.Select(async category =>
             {
                 var categoryDef = await _manifest.LoadSocketCategory(category.SocketCategoryHash);
-                var sockets = new List<Socket>();
-                foreach(var index in category.SocketIndexes)
+                var categoryEntries = category.SocketIndexes.Select(index => (entry: socketEntries[index], socket: socketArray[index]))
+                    .Where(item => item.entry.DefaultVisible);
+                
+                var socketTasks = categoryEntries.Select(async item =>
                 {
-                    var socketEntry = socketEntries[index];
-                    if(!socketEntry.DefaultVisible)
-                    {
-                        continue;
-                    }
-
                     // Technically this should use the DestinySocketTypeDefinition.PlugWhiteList
                     // to match the categories of the perks in a socket. Unfortuantely that
                     // doesn't work for weapons - the two columns of perks have the same
@@ -72,19 +66,21 @@ namespace Destiny2Builds.Services
                     // Instead, assume that the sockets in the array of DestinyItemSocketState's
                     // are in the same order as the sockets in the DestinyItemSocketBlockDefinition
                     // and hope for the best.
-                    var perks = await _perkFactory.LoadPerks(socketArray[index]);
+                    var perksTask = _perkFactory.LoadPerks(item.socket);
+                    var socketTypeTask = _manifest.LoadSocketType(item.entry.SocketTypeHash);
 
-                    var socketType = await _manifest.LoadSocketType(socketEntry.SocketTypeHash);
-                    var socket = await CreateSocket(socketEntry, socketType, categoryDef,
-                        mods, shaders, perks);
-                    sockets.Add(socket);
-                }
+                    await Task.WhenAll(perksTask, socketTypeTask);
 
-                var socketCategory = new SocketCategory(categoryDef, sockets);
-                socketCategories.Add(socketCategory);
-            }
+                    var socket = await CreateSocket(item.entry, socketTypeTask.Result, categoryDef,
+                        mods, shaders, perksTask.Result);
+                    return socket;
+                });
+                
+                var sockets = await Task.WhenAll(socketTasks);
+                return new SocketCategory(categoryDef, sockets);
+            });
 
-            return socketCategories;
+            return await Task.WhenAll(socketCategoryTasks);
         }
 
         private async Task<Socket> CreateSocket(DestinyItemSocketEntryDefinition socketEntry,
