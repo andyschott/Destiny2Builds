@@ -10,7 +10,9 @@ namespace Destiny2Builds.Services
     {
          Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
             IDictionary<long, DestinyItemInstanceComponent> itemInstances,
-            IDictionary<long, DestinyItemStatsComponent> itemStats);
+            IDictionary<long, DestinyItemStatsComponent> itemStats,
+            IDictionary<long, DestinyItemSocketsComponent> itemSockets,
+            IEnumerable<Mod> mods, IEnumerable<Mod> shader);
         Task<Item> LoadItem(BungieMembershipType type, long accountId, long characterId,
             uint itemHash, long instanceId);
     }

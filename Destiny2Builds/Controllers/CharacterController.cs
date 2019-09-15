@@ -22,17 +22,20 @@ namespace Destiny2Builds.Controllers
         private readonly IManifest _manifest;
         private readonly BungieSettings _bungie;
         private readonly IItemFactory _itemFactory;
+        private readonly IPerkFactory _perkFactory;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly ILogger _logger;
 
         public CharacterController(IDestiny2 destiny2, IManifest manifest,
             IOptions<BungieSettings> bungie, IItemFactory itemFactory,
-            IHttpContextAccessor contextAccessor, ILogger<CharacterController> logger)
+            IPerkFactory perkFactory, IHttpContextAccessor contextAccessor,
+            ILogger<CharacterController> logger)
         {
             _destiny2 = destiny2;
             _manifest = manifest;
             _bungie = bungie.Value;
             _itemFactory = itemFactory;
+            _perkFactory = perkFactory;
             _contextAccessor = contextAccessor;
             _logger = logger;
         }
@@ -76,15 +79,22 @@ namespace Destiny2Builds.Controllers
 
             var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
 
-            var character = await _destiny2.GetCharacterInfo(accessToken, membershipType, id, characterId,
+            var info = await _destiny2.GetProfile(accessToken, membershipType, id,
                 DestinyComponentType.Characters, DestinyComponentType.CharacterEquipment,
-                DestinyComponentType.ItemInstances, DestinyComponentType.ItemStats);
+                DestinyComponentType.ItemInstances, DestinyComponentType.ItemStats,
+                DestinyComponentType.ItemSockets, DestinyComponentType.ProfileInventories);
 
-            var allItems = await _itemFactory.LoadItems(character.Equipment.Data.Items,
-                character.ItemComponents.Instances.Data,
-                character.ItemComponents.Stats.Data);
+            var (mods, shaders) = await _perkFactory.LoadAllMods(info.ProfileInventory.Data.Items);
+
+            var allItems = await _itemFactory.LoadItems(info.CharacterEquipment.Data[characterId].Items,
+                info.ItemComponents.Instances.Data,
+                info.ItemComponents.Stats.Data,
+                info.ItemComponents.Sockets.Data,
+                mods, shaders);
             var items = allItems.ToDictionary(item => item.Slot.Hash);
             var stats = GetStats(items.Values);
+
+            var character = info.Characters.Data[characterId];
 
             var model = new CharacterViewModel()
             {
@@ -92,8 +102,8 @@ namespace Destiny2Builds.Controllers
                 AccountId = id,
                 CharacterId = characterId,
                 Items = items,
-                EmblemPath = _bungie.BaseUrl + character.Character.Data.EmblemPath,
-                EmblemBackgroundPath = _bungie.BaseUrl + character.Character.Data.EmblemBackgroundPath,
+                EmblemPath = _bungie.BaseUrl + character.EmblemPath,
+                EmblemBackgroundPath = _bungie.BaseUrl + character.EmblemBackgroundPath,
                 Stats = stats,
             };
 

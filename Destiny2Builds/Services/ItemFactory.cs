@@ -52,7 +52,9 @@ namespace Destiny2Builds.Services
         
         public async Task<IEnumerable<Item>> LoadItems(IEnumerable<DestinyItemComponent> itemComponents,
             IDictionary<long, DestinyItemInstanceComponent> itemInstances,
-            IDictionary<long, DestinyItemStatsComponent> itemStats)
+            IDictionary<long, DestinyItemStatsComponent> itemStats,
+            IDictionary<long, DestinyItemSocketsComponent> itemSockets,
+            IEnumerable<Mod> mods, IEnumerable<Mod> shaders)
         {
             var buckets = new Dictionary<long, DestinyInventoryBucketDefinition>();
 
@@ -74,9 +76,16 @@ namespace Destiny2Builds.Services
                 itemInstances.TryGetValue(itemComponent.ItemInstanceId, out var instance);
 
                 itemStats.TryGetValue(itemComponent.ItemInstanceId, out var statsComponent);
-                var stats = await _statFactory.LoadStats(instance.PrimaryStat, statsComponent?.Stats);
+                itemSockets.TryGetValue(itemComponent.ItemInstanceId, out var socketsComponent);
 
-                items.Add(new Item(_bungie.BaseUrl, itemDef, bucket, itemComponent.ItemInstanceId, instance, stats));
+                var statsTask = _statFactory.LoadStats(instance.PrimaryStat, statsComponent?.Stats);
+                var socketsTask = _socketFactory.LoadSockets(itemDef.Sockets, socketsComponent.Sockets,
+                    mods, shaders);
+
+                await Task.WhenAll(statsTask, socketsTask);
+
+                items.Add(new Item(_bungie.BaseUrl, itemDef, bucket, itemComponent.ItemInstanceId, instance,
+                    statsTask.Result, socketsTask.Result));
             }
 
             return items;
@@ -131,8 +140,7 @@ namespace Destiny2Builds.Services
             var inventory = await _destiny2.GetProfile(accessToken, type, accountId,
                 DestinyComponentType.ProfileInventories);
 
-            return await _perkFactory.LoadAllMods(inventory.ProfileInventory.Data.Items,
-                type, accountId);
+            return await _perkFactory.LoadAllMods(inventory.ProfileInventory.Data.Items);
         }
     }
 }

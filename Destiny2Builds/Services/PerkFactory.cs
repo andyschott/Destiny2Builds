@@ -144,8 +144,7 @@ namespace Destiny2Builds.Services
             return new Perk(isSelected, plug, categories);
         }
 
-        public async Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(IEnumerable<DestinyItemComponent> inventoryItems,
-            BungieMembershipType type, long accountId)
+        public async Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(IEnumerable<DestinyItemComponent> inventoryItems)
         {
             var cachedCategories = new Dictionary<uint, DestinyItemCategoryDefinition>();
 
