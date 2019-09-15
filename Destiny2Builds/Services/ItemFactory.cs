@@ -23,9 +23,6 @@ namespace Destiny2Builds.Services
         private readonly IStatFactory _statFactory;
         private readonly IPerkFactory _perkFactory;
 
-        private const uint ModsCategoryHash = 59;
-        private const uint ShadersCategoryHash = 41;
-
         private static readonly ISet<ItemSlot.SlotHashes> _includedBuckets =
             new HashSet<ItemSlot.SlotHashes>
             {
@@ -90,7 +87,7 @@ namespace Destiny2Builds.Services
         {
             var accessToken = await _contextAccessor.HttpContext.GetTokenAsync("access_token");
 
-            var modsTask = LoadAllMods(accessToken, type, accountId, characterId);
+            var modsTask = LoadAllMods(accessToken, type, accountId);
             var itemTask = GetItemDefinition(itemHash);
             var instanceTask = GetInstance(accessToken, type, accountId, instanceId);
 
@@ -129,30 +126,13 @@ namespace Destiny2Builds.Services
         }
 
         private async Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(string accessToken, BungieMembershipType type,
-            long accountId, long characterId)
+            long accountId)
         {
-            var mods = new List<Mod>();
-            var shaders = new List<Mod>();
-
             var inventory = await _destiny2.GetProfile(accessToken, type, accountId,
                 DestinyComponentType.ProfileInventories);
 
-            foreach(var item in inventory.ProfileInventory.Data.Items)
-            {
-                var itemDef = await _manifest.LoadInventoryItem(item.ItemHash);
-                if(itemDef.ItemCategoryHashes.Contains(ModsCategoryHash))
-                {
-                    var mod = await _perkFactory.LoadMod(item, itemDef, false);
-                    mods.Add(mod);
-                }
-                else if(itemDef.ItemCategoryHashes.Contains(ShadersCategoryHash))
-                {
-                    var shader = await _perkFactory.LoadMod(item, itemDef, false);
-                    shaders.Add(shader);
-                }
-            }
-
-            return (mods, shaders);
+            return await _perkFactory.LoadAllMods(inventory.ProfileInventory.Data.Items,
+                type, accountId);
         }
     }
 }

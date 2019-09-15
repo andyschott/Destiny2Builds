@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Destiny2;
 using Destiny2.Definitions;
 using Destiny2.Definitions.Sockets;
 using Destiny2.Entities.Items;
@@ -15,6 +16,7 @@ namespace Destiny2Builds.Services
             DestinySocketTypeDefinition socketType, DestinySocketCategoryDefinition categoryDef,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders, IEnumerable<Perk> currentPerks);
         Task<Perk> LoadPerk(uint hash, bool isSelected);
-        Task<Mod> LoadMod(DestinyItemComponent item, DestinyInventoryItemDefinition itemDef, bool isSelected);
+        Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(IEnumerable<DestinyItemComponent> inventoryItems,
+            BungieMembershipType type, long accountId);
     }
 }

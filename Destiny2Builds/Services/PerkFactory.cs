@@ -24,6 +24,8 @@ namespace Destiny2Builds.Services
                 2218962841, // Weapon
                 354911055,  // Ghost Shell Projections
             };
+        private const uint ModsCategoryHash = 59;
+        private const uint ShadersCategoryHash = 41;
 
         public PerkFactory(IManifest manifest, IOptions<BungieSettings> bungie)
         {
@@ -142,12 +144,63 @@ namespace Destiny2Builds.Services
             return new Perk(isSelected, plug, categories);
         }
 
-        public async Task<Mod> LoadMod(DestinyItemComponent item, DestinyInventoryItemDefinition itemDef, bool isSelected)
+        public async Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(IEnumerable<DestinyItemComponent> inventoryItems,
+            BungieMembershipType type, long accountId)
         {
-            var categories = await _manifest.LoadItemCategories(itemDef.ItemCategoryHashes);
-            return new Mod(isSelected, itemDef, categories, item.Quantity);
+            var cachedCategories = new Dictionary<uint, DestinyItemCategoryDefinition>();
+
+            var mods = new List<Mod>();
+            var shaders = new List<Mod>();
+
+            foreach(var item in inventoryItems)
+            {
+                var itemDef = await _manifest.LoadInventoryItem(item.ItemHash);
+                if(itemDef.ItemCategoryHashes.Contains(ModsCategoryHash))
+                {
+                    var categories = await GetCategories(itemDef.ItemCategoryHashes, cachedCategories);
+                    mods.Add(new Mod(false, itemDef, categories, item.Quantity));
+                }
+                else if(itemDef.ItemCategoryHashes.Contains(ShadersCategoryHash))
+                {
+                    var categories = await GetCategories(itemDef.ItemCategoryHashes, cachedCategories);
+                    shaders.Add(new Mod(false, itemDef, categories, item.Quantity));
+                }
+            }
+
+            return (mods, shaders);
         }
 
+        private async Task<IEnumerable<DestinyItemCategoryDefinition>> GetCategories(IEnumerable<uint> categoryHashes,
+            IDictionary<uint, DestinyItemCategoryDefinition> cachedCategories)
+        {
+            var categories = new List<DestinyItemCategoryDefinition>();
+            var categoriesToLoad = new List<uint>();
+
+            foreach(var hash in categoryHashes)
+            {
+                if(cachedCategories.TryGetValue(hash, out var category))
+                {
+                    categories.Add(category);
+                }
+                else
+                {
+                    categoriesToLoad.Add(hash);
+                }
+            }
+
+            if(categoriesToLoad.Any())
+            {
+                var newCategories = await _manifest.LoadItemCategories(categoriesToLoad);
+                categories.AddRange(newCategories);
+
+                foreach(var newCategory in newCategories)
+                {
+                    cachedCategories.Add(newCategory.Hash, newCategory);
+                }
+            }
+
+            return categories;
+        }
 
         private static bool ShouldLoadFromReusablePlugItems(DestinySocketTypeDefinition socketType) =>
             _loadFromReusablePlugItemSocketTypeHashes.Contains(socketType.Hash);
