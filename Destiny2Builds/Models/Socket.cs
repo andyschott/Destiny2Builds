@@ -7,7 +7,19 @@ namespace Destiny2Builds.Models
     {
         public Socket(Perk selectedPerk, IEnumerable<Perk> perks)
         {
-            Perks = perks?.ToList() ?? Enumerable.Empty<Perk>();
+            if(perks != null)
+            {
+                Perks = perks.ToList();
+            }
+            else if(selectedPerk != null)
+            {
+                Perks = new[] { selectedPerk };
+            }
+            else
+            {
+                Perks = Enumerable.Empty<Perk>();
+            }
+
             SelectedPerk = selectedPerk;
         }
 

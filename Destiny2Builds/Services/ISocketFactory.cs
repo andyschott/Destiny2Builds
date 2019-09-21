@@ -11,5 +11,7 @@ namespace Destiny2Builds.Services
         Task<IEnumerable<SocketCategory>> LoadSockets(DestinyItemSocketBlockDefinition socketDefs,
             IEnumerable<DestinyItemSocketState> itemSockets,
             IEnumerable<Mod> mods, IEnumerable<Mod> shaders);
+        Task<IEnumerable<SocketCategory>> LoadActiveSockets(DestinyItemSocketBlockDefinition socketDefs,
+            IEnumerable<DestinyItemSocketState> itemSockets);
     }
 }

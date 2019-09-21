@@ -73,8 +73,7 @@ namespace Destiny2Builds.Services
                 itemSockets.TryGetValue(item.itemComponent.ItemInstanceId, out var socketsComponent);
 
                 var statsTask = _statFactory.LoadStats(instance.PrimaryStat, statsComponent?.Stats);
-                var socketsTask = _socketFactory.LoadSockets(item.itemDef.Sockets, socketsComponent.Sockets,
-                    mods, shaders);
+                var socketsTask = _socketFactory.LoadActiveSockets(item.itemDef.Sockets, socketsComponent.Sockets);
 
                 await Task.WhenAll(statsTask, socketsTask);
 
