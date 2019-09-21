@@ -15,6 +15,7 @@ namespace Destiny2Builds.Services
     public class PerkFactory : IPerkFactory
     {
         private readonly IManifestCache _cache;
+        private readonly BungieSettings _bungie;
 
         private static readonly ISet<uint> _loadFromReusablePlugItemSocketTypeHashes =
             new HashSet<uint>
@@ -26,9 +27,10 @@ namespace Destiny2Builds.Services
         private const uint ModsCategoryHash = 59;
         private const uint ShadersCategoryHash = 41;
 
-        public PerkFactory(IManifestCache cache)
+        public PerkFactory(IManifestCache cache, IOptions<BungieSettings> bungie)
         {
             _cache = cache;
+            _bungie = bungie.Value;
         }
         
         public async Task<IEnumerable<Perk>> LoadPerks(DestinyItemSocketState socket)
@@ -131,7 +133,7 @@ namespace Destiny2Builds.Services
         {
             var plug = await _cache.GetPlugDef(hash);
             var categories = await _cache.GetItemCategoryDefinitions(plug.ItemCategoryHashes);
-            return new Perk(isSelected, plug, categories);
+            return new Perk(_bungie.BaseUrl, isSelected, plug, categories);
         }
 
         public async Task<(IEnumerable<Mod> mods, IEnumerable<Mod> shaders)> LoadAllMods(IEnumerable<DestinyItemComponent> inventoryItems)
@@ -145,12 +147,12 @@ namespace Destiny2Builds.Services
                 if(itemDef.ItemCategoryHashes.Contains(ModsCategoryHash))
                 {
                     var categories = await _cache.GetItemCategoryDefinitions(itemDef.ItemCategoryHashes);
-                    mods.Add(new Mod(false, itemDef, categories, item.Quantity));
+                    mods.Add(new Mod(_bungie.BaseUrl, false, itemDef, categories, item.Quantity));
                 }
                 else if(itemDef.ItemCategoryHashes.Contains(ShadersCategoryHash))
                 {
                     var categories = await _cache.GetItemCategoryDefinitions(itemDef.ItemCategoryHashes);
-                    shaders.Add(new Mod(false, itemDef, categories, item.Quantity));
+                    shaders.Add(new Mod(_bungie.BaseUrl, false, itemDef, categories, item.Quantity));
                 }
             }
 

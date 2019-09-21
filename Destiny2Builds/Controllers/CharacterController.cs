@@ -93,6 +93,7 @@ namespace Destiny2Builds.Controllers
                 mods, shaders);
             var items = allItems.ToDictionary(item => item.Slot.Hash);
             var stats = GetStats(items.Values);
+            var activePerks = GetActivePerks(items.Values);
 
             var character = info.Characters.Data[characterId];
 
@@ -105,6 +106,7 @@ namespace Destiny2Builds.Controllers
                 EmblemPath = _bungie.BaseUrl + character.EmblemPath,
                 EmblemBackgroundPath = _bungie.BaseUrl + character.EmblemBackgroundPath,
                 Stats = stats,
+                ActivePerks = activePerks
             };
 
             return View(model);
@@ -123,6 +125,13 @@ namespace Destiny2Builds.Controllers
                     var originalStat = grouping.First();
                     return new Stat(originalStat, value);
                 });
+        }
+
+        private IEnumerable<Perk> GetActivePerks(IEnumerable<Item> items)
+        {
+            var armorAndGhost = items.Where(item => !item.IsWeapon);
+            return armorAndGhost.SelectMany(item => item.ActivePerks)
+                .OrderBy(perk => perk.Name);
         }
     }
 }

@@ -22,29 +22,41 @@
   </div>
 </div>  
 
-<div class="container float-md-left w-50">
-  @foreach(var item in Model.AllItems)
-  {
-    <div class="row">
-        <a asp-route="ItemIndex" asp-route-type="@((int)Model.Type)"
-            asp-route-accountId="@Model.AccountId"
-            asp-route-characterId="@Model.CharacterId"
-            asp-route-itemHash="@item.Hash"
-            asp-route-instanceId="@item.InstanceId">
-        @await Html.PartialAsync("ItemPartial", item)
-      </a>
+<div class="container">
+  <div class="row">
+    <div class="col-6">
+      @foreach(var item in Model.AllItems)
+      {
+        <div class="row">
+            <a asp-route="ItemIndex" asp-route-type="@((int)Model.Type)"
+                asp-route-accountId="@Model.AccountId"
+                asp-route-characterId="@Model.CharacterId"
+                asp-route-itemHash="@item.Hash"
+                asp-route-instanceId="@item.InstanceId">
+            @await Html.PartialAsync("ItemPartial", item)
+          </a>
+        </div>
+      }
     </div>
-  }
-</div>
-
-<div class="container text-center w-50">
-  <table>
-    @foreach(var stat in Model.Stats.Values)
-    {
-      <tr>
-        <td>@stat.Name</td>
-        <td>@stat.Value</td>
-      </tr>
-    }
-  </table>
+    <div class="col-6">
+      <ul>
+        <li>Stats:
+          <ul>
+            @foreach(var stat in Model.Stats.Values)
+            {
+              <li>@stat.Name: @stat.Value</li>
+            }
+          </ul>
+        </li>
+        <li>Perks:
+          <ul>
+            @foreach(var perk in Model.ActivePerks)
+            {
+              <li><img src="@perk.Icon" width="48" height="48">@perk.Name</li>
+            }
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
 </div>

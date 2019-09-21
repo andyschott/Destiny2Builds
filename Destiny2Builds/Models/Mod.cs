@@ -5,10 +5,10 @@ namespace Destiny2Builds.Models
 {
     public class Mod : Perk
     {
-        public Mod(bool isSelected, DestinyInventoryItemDefinition mod,
+        public Mod(string baseUrl, bool isSelected, DestinyInventoryItemDefinition mod,
             IEnumerable<DestinyItemCategoryDefinition> categories,
             int quantity)
-            : base(isSelected, mod, categories)
+            : base(baseUrl, isSelected, mod, categories)
         {
             Quantity = quantity;
         }

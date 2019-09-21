@@ -1,13 +1,14 @@
 using System.Collections.Generic;
+using System.Linq;
 using Destiny2.Definitions;
 
 namespace Destiny2Builds.Models
 {
     public class Perk : AbstractDestinyObject
     {
-        public Perk(bool isSelected, DestinyInventoryItemDefinition plug,
+        public Perk(string baseUrl, bool isSelected, DestinyInventoryItemDefinition plug,
             IEnumerable<DestinyItemCategoryDefinition> categories)
-            : base(string.Empty, plug)
+            : base(baseUrl, plug)
         {
             IsSelected = isSelected;
             CategoryHash = plug.Plug.PlugCategoryHash;

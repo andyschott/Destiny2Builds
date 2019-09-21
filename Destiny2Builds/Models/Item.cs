@@ -45,6 +45,20 @@ namespace Destiny2Builds.Models
         public bool IsWeapon => Slot.IsWeapon;
         public bool IsArmor => Slot.IsArmor;
 
+        private static ISet<uint> _ignorePerkCategories = new HashSet<uint>
+        {
+            41,         // Shaders
+            1404791674, // Ghost Shell Projection
+        };
+        private static ISet<uint> _ignoreCategoryHashes = new HashSet<uint>
+        {
+            1514141499, // Arc Masterwork Armor
+            1514141500, // Solar Masterwork Armor
+            1514141501, // Void Masterwork Armor
+            3313201758, // Mobility / Resilience / Restoration
+            1744546145, // Intrinsic Armor Perk
+        };
+
         public override bool Equals(object obj)
         {
             if(!(obj is Item item))
@@ -72,5 +86,25 @@ namespace Destiny2Builds.Models
         {
             return $"{Name} ({PowerLevel})";
         }
+
+        public IEnumerable<Perk> ActivePerks =>
+            SocketCategories.SelectMany(category => category.Sockets)
+                .Where(socket => socket.SelectedPerk != null)
+                .Select(socket => socket.SelectedPerk)
+                .Where(perk =>
+                {
+                    var intersection = _ignorePerkCategories.Intersect(perk.Categories.Select(category => category.Hash));
+                    if(intersection.Any())
+                    {
+                        return false;
+                    }
+
+                    if(_ignoreCategoryHashes.Contains(perk.CategoryHash))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                });
     }
 }

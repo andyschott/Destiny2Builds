@@ -13,6 +13,7 @@ namespace Destiny2Builds.Models
         public string EmblemPath { get; set; }
         public string EmblemBackgroundPath {get; set; }
         public IDictionary<uint, Stat> Stats { get; set; } = new Dictionary<uint, Stat>();
+        public IEnumerable<Perk> ActivePerks { get; set; } = Enumerable.Empty<Perk>();
 
         public IEnumerable<Item> AllItems => Items.Values.OrderBy(item => item.Slot.Order);
     }
